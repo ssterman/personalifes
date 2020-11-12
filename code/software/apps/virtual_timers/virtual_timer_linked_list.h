@@ -15,10 +15,7 @@ typedef struct node_t {
     // *** Additional timer fields ***
 
     // add your own variables here
-	virtual_timer_callback_t callback;
-	bool repeated;
-	uint32_t microseconds_offset;
-
+	virtual_timer_callback_t cb;
     // *** Do not edit below this line ***
 
     // timer value in microseconds. Used to sort the list. Must be initialized
@@ -28,7 +25,14 @@ typedef struct node_t {
     // pointer to next node in list. Do not change this field for a node or you
     //  will break the list
     struct node_t* next;
+
+    bool repeated;
+
+    uint32_t microseconds;
+
+
 } node_t;
+
 
 
 // -- List functions

@@ -16,30 +16,12 @@
 #include "nrf_serial.h"
 
 #include "buckler.h"
-#include "gpio.h"
+#include "gpio.h"// Blink app
+//
+// Blinks the LEDs on Buckler
 
-//base address for GPIO
-//0x50000000
 
-//offsets 
-//OUT = 0x504
-//DIR = 0x514
 
-// typedef struct {
-// 	uint32_t OUT;
-// 	uint32_t OUTSET;
-// 	uint32_t OUTCLR;
-// 	uint32_t IN;
-// 	uint32_t DIR;
-// 	uint32_t DIRSET;
-// 	uint32_t DIRCLR;
-// 	uint32_t LATCH;
-// 	uint32_t DETECTMODE;
-// } GPIO_REGISTERS;
-
-// typedef struct {
-// 	uint32_t PIN_CNF[32];
-// } PIN_CONFIGURATIONS; 
 
 
 int main(void) {
@@ -50,72 +32,68 @@ int main(void) {
   APP_ERROR_CHECK(error_code);
   NRF_LOG_DEFAULT_BACKENDS_INIT();
   printf("Log initialized!\n");
+  //uint32_t GPIO_OUT_value = GPIO_reg_addr->GPIO_OUT;
+  //uint32_t GPIO_DIR_value = GPIO_reg_addr->GPIO_DIR;
+  //set LED23 to 1 and then 0
+  //printf("GPIO OUT address: %p \n", *GPIO_reg_addr->GPIO_OUT);
+  //printf("GPIO DIR address: %p \n", *GPIO_reg_addr->GPIO_DIR);
+  //printf("GPIO OUT value: %ld \n", GPIO_OUT_value);
+  //printf("GPIO DIR value: %ld \n", GPIO_DIR_value);
+  gpio_config(23, OUTPUT);
+  gpio_config(24, OUTPUT);
+  gpio_config(25, OUTPUT);
+  gpio_config(28, INPUT);
+  gpio_config(22, INPUT);
+  uint32_t *gpio_out = (uint32_t *) GPIO_OUT_addr;
+  uint32_t gpio_out_value;
 
-  printf("4.2.2 print values and addresses\n");
+  //GPIO_reg_addr->GPIO_DIR = (1 << 23) | (1<<24) | (1<<25);
+  //PIN_CNF_reg_addr->PIN_CNF[28] = 0 | (0<< 1);
 
-  // GPIO_REGISTERS* gpio_registers = (GPIO_REGISTERS*) 0x50000504;
-  // PIN_CONFIGURATIONS* pin_configs = (PIN_CONFIGURATIONS*) 0x50000700;
-
-  // uint32_t* OUT = & (gpio_registers->OUT); //(uint32_t*)0x50000504;
-  // uint32_t* DIR = & (gpio_registers->DIR); //(uint32_t*)0x50000514;
-
-  // printf("OUT: address - %p, value - %lx\n", OUT, *OUT);
-  // printf("DIR: address - %p, value - %lx\n", DIR, *DIR);
-
-  //make button0 and switch0 into inputs
-  //button0 is 28
-  // uint32_t* BUTTON0 = & (pin_configs->PIN_CNF[28]);
-  // uint32_t* SWITCH0 = & (pin_configs->PIN_CNF[22]);
-
-  //set pin direction to input (0) -> make position 1 into 0
-  //connect input buffer to pin -> make position 2 into 0
-  // *BUTTON0 = *BUTTON0 & 0xFFFFFFFC;
-  // *SWITCH0 = *SWITCH0 & 0xFFFFFFFC;
-
-  //set up for blinking LED
-  // *DIR = 1 << 24;
-  // uint32_t mask = 1 << 24;
-  
-  uint8_t LED0 = 25;
-  uint8_t LED1 = 24;
-  uint8_t BUTTON0 = 28;
-  uint8_t SWITCH0 = 22;
-
-
-  printf("before config\n");
-  //set LED0,1 as output
-  gpio_config(LED0, 1);
-  gpio_config(LED1, 1);
-
-  //set BUTTON0, SWITCH0 as input
-  gpio_config(BUTTON0, 0);
-  gpio_config(SWITCH0, 0);
-
-  printf("before while\n");
-
+  //PIN_CNF_reg_addr->PIN_CNF[22] = 0 | (0<< 1);
+  // loop forever
   while (1) {
-  	//make the LED blink
-  	// nrf_delay_ms(250);
-  	// *OUT = *OUT ^ mask;
-  	nrf_delay_ms(250);
-  	// *OUT = *OUT ^ mask;
+    bool button_b = gpio_read(28);
+  	bool switch_b = gpio_read(22);
+    gpio_out_value = *gpio_out;
+  	//printf("GPIO button value: %d\n", button_b);
+  	//printf("GPIO switch value: %d\n", switch_b);
+    printf("GPIO_OUT button: %08x\n", gpio_out_value);
 
-   //printf("BUTTON0: address - %p, value - %lx\n", BUTTON0, gpio_registers->IN << 3 >> 31);
-   // printf("SWITCH0: address - %p, value - %lx\n", SWITCH0, gpio_registers->IN << 9 >> 31);
- 	
- 	printf("BUTTON0: %lx\n", gpio_read(BUTTON0));
+   // nrf_delay_ms(100);
+    //printf("GPIO_OUT button: %x\n", gpio_out_value);
+    if(switch_b){
+    	gpio_set(24);
+    }
+    else{
+    	gpio_clear(24);
+    }
+    if (button_b) {
+      gpio_set(25);
+      //printf("%d\n", button_b);
+    }
+    else{
+      gpio_clear(25);
+      //printf("%d\n", button_b);
+    }
+    //printf("GPIO_OUT switch: %x\n", gpio_out_value);
+   //nrf_delay_ms(100);
+   //  gpio_set(23);
+   //  gpio_set(24);
+   //  gpio_set(25);
+  	// nrf_delay_ms(200);
+  	// gpio_clear(23);
+   //  gpio_clear(24);
+   //  gpio_clear(25);
+  	// nrf_delay_ms(200);
+   //  gpio_set(23);
+   //  gpio_set(24);
+   //  gpio_set(25);
+  	// nrf_delay_ms(200);
+  	// gpio_set(23);
+   //  gpio_set(24);
+   //  gpio_set(25);
+  	// nrf_delay_ms(200);
 
- 	if (gpio_read(BUTTON0)) {
-	 	gpio_set(LED0);
-	} else {
-	 	gpio_clear(LED0);
-	}
-
-	if (gpio_read(SWITCH0)) {
-	 	gpio_set(LED1);
-	} else {
-	 	gpio_clear(LED1);
-	}
   }
 }
-

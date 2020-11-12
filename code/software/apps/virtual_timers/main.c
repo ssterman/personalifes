@@ -23,15 +23,20 @@
 
 void led0_toggle() {
     nrf_gpio_pin_toggle(BUCKLER_LED0);
+     printf("LED0 toggled!\n");
 }
 
 void led1_toggle() {
     nrf_gpio_pin_toggle(BUCKLER_LED1);
+     printf("LED1 toggled!\n");
 }
 
 void led2_toggle() {
     nrf_gpio_pin_toggle(BUCKLER_LED2);
+    printf("LED2 toggled!\n");
 }
+
+
 
 int main(void) {
   ret_code_t error_code = NRF_SUCCESS;
@@ -49,33 +54,41 @@ int main(void) {
 
   // Don't forget to initialize your timer library
   virtual_timer_init();
+  nrf_delay_ms(3000);
+  //////uint32_t irrelevant = virtual_timer_start(2000000, led2_toggle);
   //nrf_delay_ms(3000);
 
+  //checkpoint 6.2.6
+  // uint32_t timer_id = virtual_timer_start_repeated(1000000, led2_toggle);
+  // nrf_delay_ms(5000);
+  // virtual_timer_cancel(timer_id);
 
+  //timer_list->timer_value = 
   // Setup some timers and see what happens
   //virtual_timer_start_repeated(1000000, led0_toggle);
   //virtual_timer_start_repeated(2000000, led1_toggle);
-  
-  // uint32_t node = virtual_timer_start_repeated(1000000, led0_toggle);
-  // nrf_delay_ms(5000);
-  // virtual_timer_cancel(node);
 
-  // virtual_timer_start(1000000, led0_toggle);
-  // virtual_timer_start(2000000, led1_toggle);
-  // virtual_timer_start(3000000, led2_toggle);
+  //checkpoint 6.2.7
+  // uint32_t timer1_id = virtual_timer_start(1000000, led0_toggle);
+  // uint32_t timer2_id = virtual_timer_start(2000000, led1_toggle);
+  // uint32_t timer3_id = virtual_timer_start(3000000, led2_toggle);
+  // uint32_t timer4_id = virtual_timer_start(4000000, led0_toggle);
+  // uint32_t timer5_id = virtual_timer_start(5000000, led1_toggle);
+  // uint32_t timer6_id = virtual_timer_start(6000000, led2_toggle);
 
-  // virtual_timer_start(4000000, led0_toggle);
-  // virtual_timer_start(5000000, led1_toggle);
-  // virtual_timer_start(6000000, led2_toggle);
+  //checkpoint 6.2.8
+  uint32_t timer1 = virtual_timer_start_repeated(1000, led0_toggle);
+  uint32_t timer2 = virtual_timer_start_repeated(2000, led1_toggle);
 
-  nrf_delay_ms(2000);
+  //virtual_timer_cancel(timer1);
+  //virtual_timer_cancel(timer2);
 
-  virtual_timer_start_repeated(1000, led0_toggle);
-  virtual_timer_start_repeated(1000, led1_toggle);
-  // loop forever
-  while (1) {
-    // nrf_delay_ms(1000);
-    // printf("current time: %lu\n", read_timer());
-  }
+
+  //while (1) {
+  //  uint32_t timer_counter = read_timer();
+  //  printf("Timer value: %ld\n", timer_counter);
+  //  list_print();
+  //  nrf_delay_ms(1000);
+  //}
 }
 

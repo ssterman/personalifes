@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <math.h>
 
 #include "app_error.h"
 #include "nrf.h"
@@ -19,6 +20,7 @@
 #include "nrfx_saadc.h"
 
 #include "buckler.h"
+
 
 // ADC channels
 #define X_CHANNEL 0
@@ -37,6 +39,9 @@ nrf_saadc_value_t sample_value (uint8_t channel) {
   APP_ERROR_CHECK(error_code);
   return val;
 }
+float x_volt, y_volt, z_volt;
+float x_g, y_g, z_g;
+float theta, phi, o;
 
 int main (void) {
   ret_code_t error_code = NRF_SUCCESS;
@@ -82,9 +87,19 @@ int main (void) {
     nrf_saadc_value_t x_val = sample_value(X_CHANNEL);
     nrf_saadc_value_t y_val = sample_value(Y_CHANNEL);
     nrf_saadc_value_t z_val = sample_value(Z_CHANNEL);
-
+    x_volt = x_val *0.6/4096*6;
+    y_volt = y_val *0.6/4096*6;
+    z_volt = z_val *0.6/4096*6;
+    x_g = (x_volt - 1.42)/0.42;
+    y_g = (y_volt - 1.45)/0.42;
+    z_g = (z_volt - 1.39)/0.42;
+    theta = atan(x_g/(sqrt(pow(y_g,2) + pow(z_g,2))))*180/3.14;
+    phi = atan(y_g/(sqrt(pow(x_g,2) + pow(z_g,2))))*180/3.14;
+    o = atan((sqrt(pow(x_g,2) + pow(y_g,2))/z_g))*180/3.14;
     // display results
-    printf("x: %d\ty: %d\tz:%d\n", x_val, y_val, z_val);
+    //printf("x: %f\ty: %f\tz:%f\n", x_volt, y_volt, z_volt);
+    //nrf_delay_ms(250);
+    printf("theta: %f\tphi: %f\to:%f\n", theta, phi, o);
     nrf_delay_ms(250);
   }
 }

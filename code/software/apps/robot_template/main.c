@@ -32,62 +32,49 @@ NRF_TWI_MNGR_DEF(twi_mngr_instance, 5, 0);
 typedef enum {
   OFF,
   DRIVING,
-  TURNING,
-  REVERSING,
+  TURN_CW,
+  BACK_UP_LEFT,
+  BACK_UP_RIGHT,
+  TURN_AWAY_LEFT,
+  TURN_AWAY_RIGHT,
 } robot_state_t;
 
-typedef enum {
-  CLOCKWISE,
-  COUNTERCLOCKWISE,
-} rotation_direction_t;
+void back_up_state(bool left);
+void pre_dir_change();
+void display_float(float v);
 
-typedef enum {
-  LEFT,
-  CENTER,
-  RIGHT,
-} direction_t;
-
-void lcdPrintLine2Float(float value) {
-  char buf [16];
-  snprintf ( buf , 16 , "%f", value );
-  display_write ( buf , DISPLAY_LINE_1 ) ;
+static float measure_distance(uint16_t current_encoder,
+                              uint16_t previous_encoder) {
+  const float CONVERSION = 0.0006108;
+  uint16_t ticks = current_encoder >= previous_encoder
+    ? current_encoder - previous_encoder
+    : current_encoder + (UINT16_MAX - previous_encoder);
+  return CONVERSION * ticks;
 }
 
-static float measure_distance(uint16_t current_encoder, uint16_t previous_encoder, bool reversing) {
-  const float CONVERSION = 0.0006108; // ticks to meters
 
-  uint16_t ticks = 0;
-  float distance = 0;
- 
-  if (current_encoder == previous_encoder) {
-    return distance;
-  }
-
-  if (!reversing) {
-    if (current_encoder > previous_encoder) {
-      ticks = (current_encoder - previous_encoder);
-    } else {
-      ticks = UINT16_MAX - previous_encoder + current_encoder;
-    }
-    distance = ticks * CONVERSION;
-  } else {
-    if (current_encoder > previous_encoder) {
-      printf("reversing at wrap: %i, %i\n", current_encoder, previous_encoder);
-      ticks = ( (previous_encoder) + (UINT16_MAX - current_encoder) );
-    } else {
-      printf("reversing in middle: %i, %i\n", current_encoder, previous_encoder);
-      ticks = previous_encoder - current_encoder;
-    }
-    distance = (-1.0) * ticks * CONVERSION;
-    printf("increment, ticks: %f, %i\n", distance, ticks);
-  }
-
-  // it should never be this high, indicates a holdover from previous direction
-  if (ticks > 60000) { return 0; }
-
-  return distance;
+static float measure_distance_reversed(uint16_t current_encoder,
+                                       uint16_t previous_encoder) {
+  // take the absolute value of ticks traveled before negating
+  const float CONVERSION = 0.0006108;
+  uint16_t ticks = current_encoder <= previous_encoder
+    ? previous_encoder - current_encoder
+    : previous_encoder + (UINT16_MAX - current_encoder);
+  return -CONVERSION * ticks;
 }
 
+static bool is_bump(KobukiSensors_t *sensors) {
+  return sensors->bumps_wheelDrops.bumpLeft
+    || sensors->bumps_wheelDrops.bumpCenter
+    || sensors->bumps_wheelDrops.bumpRight;
+}
+
+static uint16_t last_encoder = 0;
+static float distance_traveled = 0.0;
+
+// configure initial state
+static KobukiSensors_t sensors = {0};
+static robot_state_t state = OFF;
 
 int main(void) {
   ret_code_t error_code = NRF_SUCCESS;
@@ -136,20 +123,6 @@ int main(void) {
   kobukiInit();
   printf("Kobuki initialized!\n");
 
-  // configure initial state
-  robot_state_t state = OFF;
-  KobukiSensors_t sensors = {0};
-
-
-  float total_distance = 0;
-  float angle = 0;
-  uint16_t previous_encoder = sensors.rightWheelEncoder;
-
-  direction_t obstaclePosition = CENTER;
-
-  float GOAL_ANGLE = 90;
-  rotation_direction_t TURN_DIRECTION = COUNTERCLOCKWISE;
-
   // loop forever, running state machine
   while (1) {
     // read sensors from robot
@@ -160,18 +133,19 @@ int main(void) {
     //  in printf's in this loop breaking JTAG
     nrf_delay_ms(1);
 
+
     // handle states
     switch(state) {
       case OFF: {
         // transition logic
         if (is_button_pressed(&sensors)) {
-                   // reset distance
-          total_distance = 0;
-          previous_encoder = sensors.rightWheelEncoder;
+          last_encoder = sensors.leftWheelEncoder;
+          distance_traveled = 0.0;
           state = DRIVING;
         } else {
           // perform state-specific actions here
           display_write("OFF", DISPLAY_LINE_0);
+          display_write("", DISPLAY_LINE_1);
           kobukiDriveDirect(0, 0);
           state = OFF;
         }
@@ -181,132 +155,149 @@ int main(void) {
       case DRIVING: {
         // transition logic
         if (is_button_pressed(&sensors)) {
-          lsm9ds1_stop_gyro_integration();
           state = OFF;
-        } else if (sensors.bumps_wheelDrops.bumpLeft 
-           || sensors.bumps_wheelDrops.bumpCenter
-           || sensors.bumps_wheelDrops.bumpRight
-        ){
-          if (sensors.bumps_wheelDrops.bumpLeft) {
-            obstaclePosition = LEFT;
-          } else if (sensors.bumps_wheelDrops.bumpRight) {
-            obstaclePosition = RIGHT;
-          } else {
-            obstaclePosition = CENTER;
-          }
-
-          previous_encoder = sensors.rightWheelEncoder;
-          total_distance = 0;
-          printf("(go to REVERSING)\n");
-          state = REVERSING;
-        } else if (total_distance >= 0.5) {
-          printf("transition to turning from DRIVING");
-          angle = 0;
-          GOAL_ANGLE = 90;
-          TURN_DIRECTION = COUNTERCLOCKWISE;
-          //turn on gyro
-          lsm9ds1_start_gyro_integration();
-          state = TURNING;
+        } else if (sensors.bumps_wheelDrops.bumpRight
+            || sensors.bumps_wheelDrops.bumpCenter) {
+          pre_dir_change();
+          state = BACK_UP_LEFT;
+        } else if (sensors.bumps_wheelDrops.bumpLeft) {
+          pre_dir_change();
+          state = BACK_UP_RIGHT;
         } else {
           // perform state-specific actions here
           display_write("DRIVING", DISPLAY_LINE_0);
-          kobukiDriveDirect(75, 75);
-          
-          //measure distance
-          uint16_t current_encoder = sensors.rightWheelEncoder;
-          float increment = measure_distance(current_encoder, previous_encoder, false);
-          printf("(increment) %f\n", increment);
-          //update distance
-          total_distance = total_distance + increment;
-          printf("total distance %f \n", total_distance);
-          //update the previous encoder value
-          previous_encoder = current_encoder;
-
-          lcdPrintLine2Float(total_distance);
-
-          state = DRIVING;
+          uint16_t curr_encoder = sensors.leftWheelEncoder;
+          float value = measure_distance(curr_encoder, last_encoder);
+          distance_traveled += value;
+          last_encoder = curr_encoder;
+          display_float(distance_traveled);
+          if (distance_traveled >= 0.5) {
+            lsm9ds1_start_gyro_integration();
+            state = TURN_CW;
+          } else {
+            kobukiDriveDirect(75, 75);
+            state = DRIVING;
+          }
         }
         break; // each case needs to end with break!
-      } case TURNING: {
-        if (is_button_pressed(&sensors)) {
-          lsm9ds1_stop_gyro_integration();          
-          state = OFF;
-        } else if (sensors.bumps_wheelDrops.bumpLeft 
-           || sensors.bumps_wheelDrops.bumpCenter
-           || sensors.bumps_wheelDrops.bumpRight
-        ){
-          if (sensors.bumps_wheelDrops.bumpLeft) {
-            obstaclePosition = LEFT;
-          } else if (sensors.bumps_wheelDrops.bumpRight) {
-            obstaclePosition = RIGHT;
-          } else {
-            obstaclePosition = CENTER;
-          }
-          lsm9ds1_stop_gyro_integration();
-          previous_encoder = sensors.rightWheelEncoder;
-          total_distance = 0;
-          printf("go to reversing\n");
-          state = REVERSING;
-        } else if (angle >= GOAL_ANGLE) {
-          total_distance = 0;
-          //turn off gyro
-          lsm9ds1_stop_gyro_integration();
-          previous_encoder = sensors.rightWheelEncoder;
-          state = DRIVING;
-          printf("(transition to driving from turning) %f\n", total_distance );
-        } else {
-          angle = fabs(lsm9ds1_read_gyro_integration().z_axis);
-          display_write("TURNING", DISPLAY_LINE_0);
-          if (TURN_DIRECTION == CLOCKWISE) {
-            kobukiDriveDirect(50, -50);
-          } else {
-            kobukiDriveDirect(-50, 50);
-          }
-
-          lcdPrintLine2Float(angle);
-
-          state = TURNING;
-        }
-        break;
-      } case REVERSING: {
-          if (is_button_pressed(&sensors)) {
-            state = OFF;
-          } else if (total_distance <= -0.1) {
-            printf("leaving reversing: %f\n", total_distance);
-            angle = 0;
-            GOAL_ANGLE = 45;
-            if (obstaclePosition == RIGHT) {
-              TURN_DIRECTION = COUNTERCLOCKWISE;
-            } else {
-              TURN_DIRECTION = CLOCKWISE;
-            }
-            //turn on gyro
-            lsm9ds1_start_gyro_integration();
-            state = TURNING;
-          } else {
-            display_write("REVERSING", DISPLAY_LINE_0);
-            kobukiDriveDirect(-75, -75);
-            
-            //measure distance
-            uint16_t current_encoder = sensors.rightWheelEncoder;
-            float increment = measure_distance(current_encoder, previous_encoder, true);
-            printf("(increment) %f\n", increment);
-            //update distance
-            total_distance = total_distance + increment;
-            printf("total distance %f \n", total_distance);
-            //update the previous encoder value
-            previous_encoder = current_encoder;
-
-            lcdPrintLine2Float(total_distance);
-
-            state = REVERSING;
-          }
-        break;
       }
 
       // add other cases here
+      case TURN_CW: {
+        if (is_button_pressed(&sensors)) {
+          lsm9ds1_stop_gyro_integration();
+          state = OFF;
+        } else if (sensors.bumps_wheelDrops.bumpRight
+            || sensors.bumps_wheelDrops.bumpCenter) {
+          lsm9ds1_stop_gyro_integration();
+          pre_dir_change();
+          state = BACK_UP_LEFT;
+        } else if (sensors.bumps_wheelDrops.bumpLeft) {
+          lsm9ds1_stop_gyro_integration();
+          pre_dir_change();
+          state = BACK_UP_RIGHT;
+        } else {
+          // returns angles in degrees, cw is negative
+          float angle_turned = fabs(lsm9ds1_read_gyro_integration().z_axis);
+          if (angle_turned >= 90) {
+            lsm9ds1_stop_gyro_integration();
+            pre_dir_change();
+            state = DRIVING;
+          } else {
+            display_write("TURNING", DISPLAY_LINE_0);
+            kobukiDriveDirect(40, -40);
+            display_float(angle_turned);
+            state = TURN_CW;
+          }
+        }
+        break;
+      }
 
+      case BACK_UP_LEFT: {
+        display_write("BACK UP LEFT", DISPLAY_LINE_0);
+        back_up_state(true);
+        break;
+      }
+      case BACK_UP_RIGHT: {
+        display_write("BACK UP RIGHT", DISPLAY_LINE_0);
+        back_up_state(false);
+        break;
+      }
+      case TURN_AWAY_LEFT: {
+        if (is_button_pressed(&sensors)) {
+          lsm9ds1_stop_gyro_integration();
+          state = OFF;
+        } else {
+          float angle_turned = fabs(lsm9ds1_read_gyro_integration().z_axis);
+          if (angle_turned >= 45) {
+            lsm9ds1_stop_gyro_integration();
+            pre_dir_change();
+            state = DRIVING;
+          } else {
+            display_write("EVADING LEFT", DISPLAY_LINE_0);
+            display_float(angle_turned);
+            kobukiDriveDirect(-40, 40);
+          }
+        }
+        break;
+      }
+      case TURN_AWAY_RIGHT: {
+        if (is_button_pressed(&sensors)) {
+          lsm9ds1_stop_gyro_integration();
+          state = OFF;
+        } else {
+          float angle_turned = fabs(lsm9ds1_read_gyro_integration().z_axis);
+          if (angle_turned >= 45) {
+            lsm9ds1_stop_gyro_integration();
+            pre_dir_change();
+            state = DRIVING;
+          } else {
+            display_write("EVADING RIGHT", DISPLAY_LINE_0);
+            display_float(angle_turned);
+            kobukiDriveDirect(40, -40);
+          }
+        }
+        break;
+      }
     }
   }
 }
 
+void display_float(float v) {
+  char buf [16];
+  snprintf(buf, 16, "%f", v);
+  display_write(buf, DISPLAY_LINE_1);
+}
+
+int i;
+void pre_dir_change() {
+  // allow encoder momentum to stop
+  display_write("PAUSING", DISPLAY_LINE_0);
+  kobukiDriveDirect(0, 0);
+  for (i = 0; i < 30; i++) {
+    kobukiSensorPoll(&sensors);
+    nrf_delay_ms(1);
+  }
+  distance_traveled = 0;
+  last_encoder = sensors.leftWheelEncoder;
+}
+
+void back_up_state(bool left) {
+  if (is_button_pressed(&sensors)) {
+    state = OFF;
+  } else {
+    uint16_t curr_encoder = sensors.leftWheelEncoder;
+    float value = measure_distance_reversed(curr_encoder, last_encoder);
+    distance_traveled += value;
+    last_encoder = curr_encoder;
+    display_float(distance_traveled);
+    
+    if (distance_traveled <= -0.1) {
+      lsm9ds1_start_gyro_integration();
+      state = left ? TURN_AWAY_LEFT : TURN_AWAY_RIGHT;
+    } else {
+      kobukiDriveDirect(-50, -50);
+      state = left ? BACK_UP_LEFT : BACK_UP_RIGHT;
+    }
+  }
+}

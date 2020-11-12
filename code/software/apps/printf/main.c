@@ -19,6 +19,7 @@
 
 #include "buckler.h"
 
+uint32_t g = 0;
 int main(void) {
   ret_code_t error_code = NRF_SUCCESS;
 
@@ -30,9 +31,13 @@ int main(void) {
 
   // loop forever
   uint32_t i = 0;
+  printf("Address: %p\n",&i);
   while (1) {
     nrf_delay_ms(1000);
     printf("Iteration: %lu\n", i++);
+    if (i>5) {
+      g = 1;
+    }
   }
 }
 
