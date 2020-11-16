@@ -7,20 +7,73 @@
 #include <stdio.h>
 
 #include "app_error.h"
+#include "app_timer.h"
 #include "nrf.h"
+#include "nrf_gpio.h"
 #include "nrf_delay.h"
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
 #include "nrf_pwr_mgmt.h"
 #include "nrf_serial.h"
+#include "nrf_drv_spi.h"
 
 #include "buckler.h"
 #include "gpio.h"// Blink app
-//
-// Blinks the LEDs on Buckler
+#include "sensors_and_actuators.h"
 
+//driver for kobuki
+#include "buckler.h"
+#include "display.h"
+#include "kobukiActuator.h"
+#include "kobukiSensorPoll.h"
+#include "kobukiSensorTypes.h"
+#include "kobukiUtilities.h"
+#include "lsm9ds1.h"
 
+// I2C manager
+NRF_TWI_MNGR_DEF(twi_mngr_instance, 5, 0);
+
+typedef enum {
+  AMBIENT,
+  ATTENTION,
+  TOUCH,
+  SCARED,
+} flower_state_t;
+
+light_values_t current_light, previous_light;
+uint16_t = scared_light_thresh = ;
+uint32_t timer_thresh = , turn_thresh = , timer_scared_thresh = ;
+uint8_t r, b, g;
+bool motion_yn, facing_motion;
+touch_values_t touch_state;
+uint32_t current_time, previous_time, timer_start, timer_counter;
+
+static float measure_distance(uint16_t current_encoder,
+                              uint16_t previous_encoder) {
+  const float CONVERSION = 0.0006108;
+  uint16_t ticks = current_encoder >= previous_encoder
+    ? current_encoder - previous_encoder
+    : current_encoder + (UINT16_MAX - previous_encoder);
+  return CONVERSION * ticks;
+}
+
+static float measure_distance_reversed(uint16_t current_encoder,
+                                       uint16_t previous_encoder) {
+  // take the absolute value of ticks traveled before negating
+  const float CONVERSION = 0.0006108;
+  uint16_t ticks = current_encoder <= previous_encoder
+    ? previous_encoder - current_encoder
+    : previous_encoder + (UINT16_MAX - current_encoder);
+  return -CONVERSION * ticks;
+}
+
+static uint16_t last_encoder = 0;
+static float distance_traveled = 0.0;
+
+// configure initial state
+static KobukiSensors_t sensors = {0};
+static flower_state_t state = AMBIENT;
 
 
 
@@ -32,68 +85,162 @@ int main(void) {
   APP_ERROR_CHECK(error_code);
   NRF_LOG_DEFAULT_BACKENDS_INIT();
   printf("Log initialized!\n");
-  //uint32_t GPIO_OUT_value = GPIO_reg_addr->GPIO_OUT;
-  //uint32_t GPIO_DIR_value = GPIO_reg_addr->GPIO_DIR;
-  //set LED23 to 1 and then 0
-  //printf("GPIO OUT address: %p \n", *GPIO_reg_addr->GPIO_OUT);
-  //printf("GPIO DIR address: %p \n", *GPIO_reg_addr->GPIO_DIR);
-  //printf("GPIO OUT value: %ld \n", GPIO_OUT_value);
-  //printf("GPIO DIR value: %ld \n", GPIO_DIR_value);
-  gpio_config(23, OUTPUT);
-  gpio_config(24, OUTPUT);
-  gpio_config(25, OUTPUT);
-  gpio_config(28, INPUT);
-  gpio_config(22, INPUT);
-  uint32_t *gpio_out = (uint32_t *) GPIO_OUT_addr;
-  uint32_t gpio_out_value;
 
-  //GPIO_reg_addr->GPIO_DIR = (1 << 23) | (1<<24) | (1<<25);
-  //PIN_CNF_reg_addr->PIN_CNF[28] = 0 | (0<< 1);
+  // initialize LEDs
+  nrf_gpio_pin_dir_set(23, NRF_GPIO_PIN_DIR_OUTPUT);
+  nrf_gpio_pin_dir_set(24, NRF_GPIO_PIN_DIR_OUTPUT);
+  nrf_gpio_pin_dir_set(25, NRF_GPIO_PIN_DIR_OUTPUT);
 
-  //PIN_CNF_reg_addr->PIN_CNF[22] = 0 | (0<< 1);
+  // initialize display
+  nrf_drv_spi_t spi_instance = NRF_DRV_SPI_INSTANCE(1);
+  nrf_drv_spi_config_t spi_config = {
+    .sck_pin = BUCKLER_LCD_SCLK,
+    .mosi_pin = BUCKLER_LCD_MOSI,
+    .miso_pin = BUCKLER_LCD_MISO,
+    .ss_pin = BUCKLER_LCD_CS,
+    .irq_priority = NRFX_SPI_DEFAULT_CONFIG_IRQ_PRIORITY,
+    .orc = 0,
+    .frequency = NRF_DRV_SPI_FREQ_4M,
+    .mode = NRF_DRV_SPI_MODE_2,
+    .bit_order = NRF_DRV_SPI_BIT_ORDER_MSB_FIRST
+  };
+
+  error_code = nrf_drv_spi_init(&spi_instance, &spi_config, NULL, NULL);
+  APP_ERROR_CHECK(error_code);
+  display_init(&spi_instance);
+  display_write("Hello, Human!", DISPLAY_LINE_0);
+  printf("Display initialized!\n");
+
+  // initialize i2c master (two wire interface)
+  nrf_drv_twi_config_t i2c_config = NRF_DRV_TWI_DEFAULT_CONFIG;
+  i2c_config.scl = BUCKLER_SENSORS_SCL;
+  i2c_config.sda = BUCKLER_SENSORS_SDA;
+  i2c_config.frequency = NRF_TWIM_FREQ_100K;
+  error_code = nrf_twi_mngr_init(&twi_mngr_instance, &i2c_config);
+  APP_ERROR_CHECK(error_code);
+  lsm9ds1_init(&twi_mngr_instance);
+  printf("IMU initialized!\n");
+
+  // initialize sensors
+  initialize_motor()
+  initialize_touch_sensors();
+  initialize_light_sensors();
+  initialize_motion_sensor();
+  initialize_LED();
+  printf("All sensors initialized!\n");
+  virtual_timer_init();
+
+  // gpio_config(23, OUTPUT);
+  // gpio_config(24, OUTPUT);
+  // gpio_config(25, OUTPUT);
+  // gpio_config(28, INPUT);
+  // gpio_config(22, INPUT);
+  // uint32_t *gpio_out = (uint32_t *) GPIO_OUT_addr;
+  // uint32_t gpio_out_value;
+
   // loop forever
   while (1) {
-    bool button_b = gpio_read(28);
-  	bool switch_b = gpio_read(22);
-    gpio_out_value = *gpio_out;
-  	//printf("GPIO button value: %d\n", button_b);
-  	//printf("GPIO switch value: %d\n", switch_b);
-    printf("GPIO_OUT button: %08x\n", gpio_out_value);
+    kobukiSensorPoll(&sensors);
+    previous_time = current_time;
+    current_time = read_timer();
+    previous_light = current_light;
+    previous_light_val = 
+    current_light = read_light_sensors();
+    current_light_val = 
+    motion_yn = read_motion_sensor();
+    touch_state = read_touch_sensors();
+    nrf_delay_ms(1);
 
-   // nrf_delay_ms(100);
-    //printf("GPIO_OUT button: %x\n", gpio_out_value);
-    if(switch_b){
-    	gpio_set(24);
+    switch(state) {
+      case AMBIENT: {
+        //set LEDs based on ambient light
+        // transition logic
+        if (touch_state) {
+          state = TOUCH;
+          timer_start = current_time;
+          turn_SMA_on();
+        }
+        else if (motion_yn) {
+          state = ATTENTION;
+          last_encoder = sensors.leftWheelEncoder;
+          distance_traveled = 0.0;
+          timer_start = current_time;
+          kobukiDriveDirect(5, 0);
+          turn_SMA_on();
+        }
+        else if (fabs(current_light_val - previous_light_val) >= scared_light_thresh) {
+          state = SCARED;
+          timer_start = current_time;
+          flashLEDs();
+          turn_SMA_on();
+        }
+        else {
+          r = 
+          g = 
+          b = 
+          set_LED_color(r, g, b);
+        }
+        break; // each case needs to end with break!
+      }
+
+      case ATTENTION: {
+        //
+        timer_counter = current_time - timer_start;
+        uint16_t curr_encoder = sensors.leftWheelEncoder;
+        float value = measure_distance(curr_encoder, last_encoder);
+        distance_traveled += value;
+        last_encoder = curr_encoder;
+        facing motion = distance_traveled;
+        if (fabs(current_light_val - previous_light_val) >= scared_light_thresh) {
+          state = SCARED;
+          timer_start = current_time;
+          turn_SMA_on();
+          flashLEDs();
+        }
+        else if (timer_counter > timer_thresh) {
+          state = AMBIENT;
+        }
+        else if (distance_traveled > turn_thresh) {
+          state = TOUCH;
+          turn_SMA_on();
+        }
+        else {
+          kobukiDriveDirect(5, 0);
+          turn_SMA_on();
+        }
+        break; // each case needs to end with break!
+      }
+
+      case TOUCH: {
+        timer_counter = current_time - timer_start;
+        if (fabs(current_light_val - previous_light_val) >= scared_light_thresh) {
+          state = SCARED;
+          timer_start = current_time;
+          turn_SMA_on();
+          flashLEDs();
+        }
+        else if (timer_counter > timer_thresh) {
+          state = AMBIENT;
+        }
+        else {
+          turn_SMA_on();
+        }
+        break; // each case needs to end with break!
+      }
+
+      case SCARED: {
+        // transition logic
+        timer_counter = current_time - timer_start;
+        if (timer_counter > timer_scared_thresh) {
+          state = AMBIENT;
+        }
+        else {
+          flashLEDs();
+          turn_SMA_on();
+        }
+        break; // each case needs to end with break!
+      }
     }
-    else{
-    	gpio_clear(24);
-    }
-    if (button_b) {
-      gpio_set(25);
-      //printf("%d\n", button_b);
-    }
-    else{
-      gpio_clear(25);
-      //printf("%d\n", button_b);
-    }
-    //printf("GPIO_OUT switch: %x\n", gpio_out_value);
-   //nrf_delay_ms(100);
-   //  gpio_set(23);
-   //  gpio_set(24);
-   //  gpio_set(25);
-  	// nrf_delay_ms(200);
-  	// gpio_clear(23);
-   //  gpio_clear(24);
-   //  gpio_clear(25);
-  	// nrf_delay_ms(200);
-   //  gpio_set(23);
-   //  gpio_set(24);
-   //  gpio_set(25);
-  	// nrf_delay_ms(200);
-  	// gpio_set(23);
-   //  gpio_set(24);
-   //  gpio_set(25);
-  	// nrf_delay_ms(200);
 
   }
 }

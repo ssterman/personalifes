@@ -91,3 +91,7 @@ void set_LED_color(uint8_t r, uint8_t g, uint8_t b){
 	//TODO write via PWM module
 }
 
+void flashLEDs(){
+	//write flash LEDs order
+}
+
