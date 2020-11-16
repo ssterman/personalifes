@@ -1,5 +1,6 @@
 #include "sensors_and_actuators.h"
 #include "gpio.h"
+#include "saadc.h"
 
 //*********************
 // Initialization for sensors
@@ -15,7 +16,17 @@ void initialize_motion_sensor() {
 void initialize_light_sensors() {
 
 	//TODO set up SAADC and analog in
+	// Enable ADC
 
+	//configure mode: 
+
+
+	// configure pins for ch0-3; pselp and config
+
+	// set not connected for ch4-7
+
+
+	// START adc
 }
 
 // set up as digital input
@@ -62,6 +73,7 @@ bool read_motion_sensor(){
 light_values_t read_light_sensors(){
 	light_values_t result;
 	//todo read from SAADC
+	//read from the result.ptr
 }
 
 touch_values_t read_touch_sensors(){
