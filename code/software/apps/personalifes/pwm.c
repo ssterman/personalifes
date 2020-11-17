@@ -3,8 +3,11 @@
 
 // For PWM 0
 // need to make some changes if also want to use PWM 1 or 2
+volatile PWM_TASKS_struct* PWM_tasks = (volatile PWM_TASKS_struct *) (PWM0_addr + TASKS_OFFSET);
 volatile PWM_CONFIG_struct* PWM_configuration = (volatile PWM_CONFIG_struct *) (PWM0_addr + CONFIG_OFFSET);
 volatile PWM_PSEL_struct* PWM_pin_select = (volatile PWM_PSEL_struct *) (PWM0_addr + PSEL_OFFSET);
+volatile PWM_SEQ_0_struct* PWM_seq_0 = (volatile PWM_SEQ_0_struct *) (PWM0_addr + SEQ_0_OFFSET);
+volatile PWM_SEQ_1_struct* PWM_seq_1 = (volatile PWM_SEQ_1_struct *) (PWM0_addr + SEQ_1_OFFSET);
 
 
 void pwm_configure_pin(uint32_t channel, uint32_t pin, uint32_t connect) {
@@ -66,18 +69,32 @@ void pwm_set_loop(uint32_t playback) {
 	PWM_configuration->LOOP = playback;
 }
 
-void pwm_set_decoder() {
-
+void pwm_set_decoder(uint32_t load, uint32_t mode) {
+	PWM_configuration->DECODER = load + (mode << 8);
 }
 
-void pwm_set_sequence() {
-
+void pwm_set_sequence(uint32_t sequence, uint32_t ptr, uint32_t count, uint32_t refresh, uint32_t enddelay) {
+	if (sequence == 0) {
+		PWM_seq_0->SEQ_PTR = ptr;
+		PWM_seq_0->SEQ_CNT = count;
+		PWM_seq_0->SEQ_REFRESH = refresh;
+		PWM_seq_0->SEQ_ENDDELAY = enddelay; 
+	} else {
+		PWM_seq_1->SEQ_PTR = ptr;
+		PWM_seq_1->SEQ_CNT = count;
+		PWM_seq_1->SEQ_REFRESH = refresh;
+		PWM_seq_1->SEQ_ENDDELAY = enddelay; 
+	}
 }
 
-void pwm_start() {
-
+void pwm_start(uint32_t sequence) {
+	if (sequence == 0) {
+		PWM_tasks->TASKS_SEQSTART_0 = 1;
+	} else {
+		PWM_tasks->TASKS_SEQSTART_1 = 1;
+	}
 }
 
 void pwm_stop() {
-
+	PWM_tasks->TASKS_STOP = 1;
 }

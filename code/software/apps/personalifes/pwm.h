@@ -33,17 +33,17 @@ typedef struct {
 } PWM_CONFIG_struct;
 
 typedef struct {
-	uint32_t SEQ_0_PTR;
-	uint32_t SEQ_0_CNT;
-	uint32_t SEQ_0_REFRESH;
-	uint32_t SEQ_0_ENDDELAY;
+	uint32_t SEQ_PTR;
+	uint32_t SEQ_CNT;
+	uint32_t SEQ_REFRESH;
+	uint32_t SEQ_ENDDELAY;
 } PWM_SEQ_0_struct;
 
 typedef struct {
-	uint32_t SEQ_1_PTR;
-	uint32_t SEQ_1_CNT;
-	uint32_t SEQ_1_REFRESH;
-	uint32_t SEQ_1_ENDDELAY;
+	uint32_t SEQ_PTR;
+	uint32_t SEQ_CNT;
+	uint32_t SEQ_REFRESH;
+	uint32_t SEQ_ENDDELAY;
 } PWM_SEQ_1_struct;
 
 typedef struct {
@@ -53,14 +53,14 @@ typedef struct {
 	uint32_t PSEL_OUT_3;
 } PWM_PSEL_struct;
 
-void pwm_configure_pin();
+void pwm_configure_pin(uint32_t channel, uint32_t pin, uint32_t connect);
 void pwm_enable();
 void pwm_disable();
 void pwm_set_mode(uint32_t mode);
 void pwm_set_prescaler(uint32_t prescaler);
 void pwm_set_countertop(uint32_t top);
 void pwm_set_loop(uint32_t playback);
-void pwm_set_decoder();
-void pwm_set_sequence();
-void pwm_start();
+void pwm_set_decoder(uint32_t load, uint32_t mode);
+void pwm_set_sequence(uint32_t sequence, uint32_t ptr, uint32_t count, uint32_t refresh, uint32_t enddelay);
+void pwm_start(uint32_t sequence);
 void pwm_stop();
