@@ -150,6 +150,9 @@ void turn_SMA_off(){
 
 void set_LED_color(uint32_t r, uint32_t g, uint32_t b){
 	//TODO write via PWM module
+	gpio_clear(LED_R_PIN);
+	gpio_clear(LED_G_PIN);
+	gpio_set(LED_B_PIN);
 }
 
 void flashLEDs(){
