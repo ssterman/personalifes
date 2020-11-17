@@ -4,7 +4,7 @@
 #include "nrf_delay.h"
 
 //*********************
-// Sensor Parameters
+// Sensor Config
 //*********************
 
 // Light Sensors
@@ -19,7 +19,7 @@ uint32_t resolution = 0; // 8 bit
 uint32_t cc = 80;  //don't think this matters b/c in sample mode
 uint32_t mode = 0; // use sample mode
 uint32_t result_ptr = & LIGHT_SENSOR_RESULT_DATA;
-uint32_t maxcnt = 4;
+uint32_t maxcnt = 4; //number of 32 bit words; must be >= num channels
 uint32_t resp = 1; //pulldown to ground
 uint32_t resn = 0; //bypass
 uint32_t gain = 5; //1
@@ -102,7 +102,7 @@ bool read_motion_sensor(){
 	return gpio_read(MOTION_PIN);
 }
 
-light_values_t read_light_sensors(){
+light_values_t read_light_sensors() {
 	saadc_sample();
 	while (!saadc_result_ready()) {
 		nrf_delay_ms(1);
