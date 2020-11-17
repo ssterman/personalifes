@@ -1,24 +1,31 @@
 #include "sensors_and_actuators.h"
 #include "gpio.h"
 #include "saadc.h"
+#include "pwm.h"
 #include "nrf_delay.h"
+#include "kobukiActuator.h"
+#include "kobukiSensorPoll.h"
+#include "kobukiSensorTypes.h"
+#include "kobukiUtilities.h"
 
 //*********************
 // Sensor Config
 //*********************
 
 // Light Sensors
-struct LIGHT_SENSOR_RESULT_DATA = {
+typedef struct {
 	int16_t result1;
 	int16_t result2;
 	int16_t result3;
 	int16_t result4;
-};
+} LIGHT_SENSOR_RESULT_DATA;
+
+LIGHT_SENSOR_RESULT_DATA lsrd;
 
 uint32_t resolution = 0; // 8 bit
 uint32_t cc = 80;  //don't think this matters b/c in sample mode
-uint32_t mode = 0; // use sample mode
-uint32_t result_ptr = & LIGHT_SENSOR_RESULT_DATA;
+uint32_t samplemode = 0; // use sample mode
+uint32_t result_ptr = &lsrd;
 uint32_t maxcnt = 4; //number of 32 bit words; must be >= num channels
 uint32_t resp = 1; //pulldown to ground
 uint32_t resn = 0; //bypass
@@ -43,7 +50,7 @@ void initialize_light_sensors() {
 
 	//configure mode: 
 	saadc_set_resolution(resolution);
-	set_sample_rate(cc,  mode);
+	set_sample_rate(cc,  samplemode);
 	set_result_pointer(result_ptr);
 	set_result_maxcnt(maxcnt);
 
@@ -110,10 +117,10 @@ light_values_t read_light_sensors() {
 	saadc_clear_result_ready();
 
 	light_values_t lights; 
-	lights.light1 = LIGHT_SENSOR_RESULT_DATA.result1;
-	lights.light2 = LIGHT_SENSOR_RESULT_DATA.result2;
-	lights.light3 = LIGHT_SENSOR_RESULT_DATA.result3;
-	lights.light4 = LIGHT_SENSOR_RESULT_DATA.result4;
+	lights.light1 = lsrd.result1;
+	lights.light2 = lsrd.result2;
+	lights.light3 = lsrd.result3;
+	lights.light4 = lsrd.result4;
 
 	return lights;
 }
@@ -141,7 +148,7 @@ void turn_SMA_off(){
 	gpio_clear(SMA_PIN);
 }
 
-void set_LED_color(uint8_t r, uint8_t g, uint8_t b){
+void set_LED_color(uint32_t r, uint32_t g, uint32_t b){
 	//TODO write via PWM module
 }
 

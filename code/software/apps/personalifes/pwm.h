@@ -1,13 +1,17 @@
+#pragma once
 
-#define PWM0_addr (volatile uint32_t *) 0x4001C000;
-#define PWM1_addr (volatile uint32_t *) 0x40021000;
-#define PWM2_addr (volatile uint32_t *) 0x40022000;
+#include "nrf.h"
+#include "stdbool.h"
 
-#define TASKS_OFFSET uint32_t 0x004;
-#define CONFIG_OFFSET uint32_t 0x500;
-#define SEQ_0_OFFSET uint32_t 0x520;
-#define SEQ_1_OFFSET uint32_t 0x540;
-#define PSEL_OFFSET uint32_t 0x560;
+#define PWM0_addr (volatile uint32_t *) 0x4001C000
+#define PWM1_addr (volatile uint32_t *) 0x40021000
+#define PWM2_addr (volatile uint32_t *) 0x40022000
+
+#define TASKS_OFFSET  0x004
+#define CONFIG_OFFSET  0x500
+#define SEQ_0_OFFSET  0x520
+#define SEQ_1_OFFSET  0x540
+#define PSEL_OFFSET  0x560
 
 typedef struct {
 	uint32_t TASKS_STOP;
@@ -20,7 +24,7 @@ typedef struct {
 	uint32_t EVENTS_SEQEND_0;
 	uint32_t EVENTS_SEQEND_1;
 	uint32_t EVENTS_PWMPERIODEND;
-	uint32_t EVENTS_LOOPSDONE
+	uint32_t EVENTS_LOOPSDONE;
 } PWM_TASKS_struct;
 
 typedef struct {

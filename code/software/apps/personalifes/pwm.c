@@ -11,24 +11,22 @@ volatile PWM_SEQ_1_struct* PWM_seq_1 = (volatile PWM_SEQ_1_struct *) (PWM0_addr 
 
 
 void pwm_configure_pin(uint32_t channel, uint32_t pin, uint32_t connect) {
-	uint32_t * addr; 
 	switch(channel) {
 		case 0:
-			addr = PWM_PSEL_struct->PSEL_OUT_0;
+			PWM_pin_select->PSEL_OUT_0 = (pin + (connect << 31)) + 0x7FFFFFE0;
 			break;
-		case 0:
-			addr = PWM_PSEL_struct->PSEL_OUT_1;
+		case 1:
+			PWM_pin_select->PSEL_OUT_1 = (pin + (connect << 31)) + 0x7FFFFFE0;
 			break;
-		case 0:
-			addr = PWM_PSEL_struct->PSEL_OUT_2;
+		case 2:
+			PWM_pin_select->PSEL_OUT_2 = (pin + (connect << 31)) + 0x7FFFFFE0;
 			break;
-		case 0:
-			addr = PWM_PSEL_struct->PSEL_OUT_3;
+		case 3:
+			PWM_pin_select->PSEL_OUT_3 = (pin + (connect << 31)) + 0x7FFFFFE0;
 			break;
 		default:
 			return;
 	}
-	*addr = (pin + (connect << 31)) + 0x7FFFFFE0;
 }
 
 void pwm_enable() {
