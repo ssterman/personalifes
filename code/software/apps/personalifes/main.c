@@ -130,117 +130,116 @@ int main(void) {
   printf("All sensors initialized!\n");
   virtual_timer_init();
 
-  // gpio_config(23, OUTPUT);
-  // gpio_config(24, OUTPUT);
-  // gpio_config(25, OUTPUT);
-  // gpio_config(28, INPUT);
-  // gpio_config(22, INPUT);
-  // uint32_t *gpio_out = (uint32_t *) GPIO_OUT_addr;
-  // uint32_t gpio_out_value;
+
+  while (1) {
+    
+  }
 
   // loop forever
-  while (1) {
-    kobukiSensorPoll(&sensors);
-    previous_time = current_time;
-    current_time = read_timer();
-    previous_light = current_light;
-    previous_light_val = 
-    current_light = read_light_sensors();
-    current_light_val = 
-    motion_yn = read_motion_sensor();
-    touch_state = read_touch_sensors();
-    nrf_delay_ms(1);
 
-    switch(state) {
-      case AMBIENT: {
-        //set LEDs based on ambient light
-        // transition logic
-        if (touch_state) {
-          state = TOUCH;
-          timer_start = current_time;
-          turn_SMA_on();
-        }
-        else if (motion_yn) {
-          state = ATTENTION;
-          last_encoder = sensors.leftWheelEncoder;
-          distance_traveled = 0.0;
-          timer_start = current_time;
-          kobukiDriveDirect(5, 0);
-          turn_SMA_on();
-        }
-        else if (fabs(current_light_val - previous_light_val) >= scared_light_thresh) {
-          state = SCARED;
-          timer_start = current_time;
-          flashLEDs();
-          turn_SMA_on();
-        }
-        else {
-          r = 
-          g = 
-          b = 
-          set_LED_color(r, g, b);
-        }
-        break; // each case needs to end with break!
-      }
 
-      case ATTENTION: {
-        //
-        timer_counter = current_time - timer_start;
-        uint16_t curr_encoder = sensors.leftWheelEncoder;
-        float value = measure_distance(curr_encoder, last_encoder);
-        distance_traveled += value;
-        last_encoder = curr_encoder;
-        facing motion = distance_traveled;
-        if (fabs(current_light_val - previous_light_val) >= scared_light_thresh) {
-          state = SCARED;
-          timer_start = current_time;
-          turn_SMA_on();
-          flashLEDs();
-        }
-        else if (timer_counter > timer_thresh) {
-          state = AMBIENT;
-        }
-        else if (distance_traveled > turn_thresh) {
-          state = TOUCH;
-          turn_SMA_on();
-        }
-        else {
-          kobukiDriveDirect(5, 0);
-          turn_SMA_on();
-        }
-        break; // each case needs to end with break!
-      }
+  // while (1) {
+  //   kobukiSensorPoll(&sensors);
+  //   previous_time = current_time;
+  //   current_time = read_timer();
+  //   previous_light = current_light;
+  //   previous_light_val = 
+  //   current_light = read_light_sensors();
+  //   current_light_val = 
+  //   motion_yn = read_motion_sensor();
+  //   touch_state = read_touch_sensors();
+  //   nrf_delay_ms(1);
 
-      case TOUCH: {
-        timer_counter = current_time - timer_start;
-        if (fabs(current_light_val - previous_light_val) >= scared_light_thresh) {
-          state = SCARED;
-          timer_start = current_time;
-          turn_SMA_on();
-          flashLEDs();
-        }
-        else if (timer_counter > timer_thresh) {
-          state = AMBIENT;
-        }
-        else {
-          turn_SMA_on();
-        }
-        break; // each case needs to end with break!
-      }
+  //   switch(state) {
+  //     case AMBIENT: {
+  //       //set LEDs based on ambient light
+  //       // transition logic
+  //       if (touch_state) {
+  //         state = TOUCH;
+  //         timer_start = current_time;
+  //         turn_SMA_on();
+  //       }
+  //       else if (motion_yn) {
+  //         state = ATTENTION;
+  //         last_encoder = sensors.leftWheelEncoder;
+  //         distance_traveled = 0.0;
+  //         timer_start = current_time;
+  //         kobukiDriveDirect(5, 0);
+  //         turn_SMA_on();
+  //       }
+  //       else if (fabs(current_light_val - previous_light_val) >= scared_light_thresh) {
+  //         state = SCARED;
+  //         timer_start = current_time;
+  //         flashLEDs();
+  //         turn_SMA_on();
+  //       }
+  //       else {
+  //         r = 
+  //         g = 
+  //         b = 
+  //         set_LED_color(r, g, b);
+  //       }
+  //       break; // each case needs to end with break!
+  //     }
 
-      case SCARED: {
-        // transition logic
-        timer_counter = current_time - timer_start;
-        if (timer_counter > timer_scared_thresh) {
-          state = AMBIENT;
-        }
-        else {
-          flashLEDs();
-          turn_SMA_on();
-        }
-        break; // each case needs to end with break!
-      }
-    }
+  //     case ATTENTION: {
+  //       //
+  //       timer_counter = current_time - timer_start;
+  //       uint16_t curr_encoder = sensors.leftWheelEncoder;
+  //       float value = measure_distance(curr_encoder, last_encoder);
+  //       distance_traveled += value;
+  //       last_encoder = curr_encoder;
+  //       facing motion = distance_traveled;
+  //       if (fabs(current_light_val - previous_light_val) >= scared_light_thresh) {
+  //         state = SCARED;
+  //         timer_start = current_time;
+  //         turn_SMA_on();
+  //         flashLEDs();
+  //       }
+  //       else if (timer_counter > timer_thresh) {
+  //         state = AMBIENT;
+  //       }
+  //       else if (distance_traveled > turn_thresh) {
+  //         state = TOUCH;
+  //         turn_SMA_on();
+  //       }
+  //       else {
+  //         kobukiDriveDirect(5, 0);
+  //         turn_SMA_on();
+  //       }
+  //       break; // each case needs to end with break!
+  //     }
 
-  }
+  //     case TOUCH: {
+  //       timer_counter = current_time - timer_start;
+  //       if (fabs(current_light_val - previous_light_val) >= scared_light_thresh) {
+  //         state = SCARED;
+  //         timer_start = current_time;
+  //         turn_SMA_on();
+  //         flashLEDs();
+  //       }
+  //       else if (timer_counter > timer_thresh) {
+  //         state = AMBIENT;
+  //       }
+  //       else {
+  //         turn_SMA_on();
+  //       }
+  //       break; // each case needs to end with break!
+  //     }
+
+  //     case SCARED: {
+  //       // transition logic
+  //       timer_counter = current_time - timer_start;
+  //       if (timer_counter > timer_scared_thresh) {
+  //         state = AMBIENT;
+  //       }
+  //       else {
+  //         flashLEDs();
+  //         turn_SMA_on();
+  //       }
+  //       break; // each case needs to end with break!
+  //     }
+  //   }
+
+  // }
 }
