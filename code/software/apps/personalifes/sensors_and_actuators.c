@@ -25,7 +25,7 @@ LIGHT_SENSOR_RESULT_DATA lsrd;
 uint32_t resolution = 0; // 8 bit
 uint32_t cc = 80;  //don't think this matters b/c in sample mode
 uint32_t samplemode = 0; // use sample mode
-uint32_t result_ptr = &lsrd;
+uint32_t * result_ptr = (uint32_t *) &lsrd;
 uint32_t maxcnt = 4; //number of 32 bit words; must be >= num channels
 uint32_t resp = 1; //pulldown to ground
 uint32_t resn = 0; //bypass
