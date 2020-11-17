@@ -1,6 +1,32 @@
 #include "sensors_and_actuators.h"
 #include "gpio.h"
 #include "saadc.h"
+#include "nrf_delay.h"
+
+//*********************
+// Sensor Parameters
+//*********************
+
+// Light Sensors
+struct LIGHT_SENSOR_RESULT_DATA = {
+	int16_t result1;
+	int16_t result2;
+	int16_t result3;
+	int16_t result4;
+};
+
+uint32_t resolution = 0; // 8 bit
+uint32_t cc = 80;  //don't think this matters b/c in sample mode
+uint32_t mode = 0; // use sample mode
+uint32_t result_ptr = & LIGHT_SENSOR_RESULT_DATA;
+uint32_t maxcnt = 4;
+uint32_t resp = 1; //pulldown to ground
+uint32_t resn = 0; //bypass
+uint32_t gain = 5; //1
+uint32_t refsel = 0; //internal 
+uint32_t tacq = 2; //10 microseconds
+uint32_t mode = 0; //single ended
+uint32_t burst = 0; //off
 
 //*********************
 // Initialization for sensors
@@ -11,22 +37,29 @@ void initialize_motion_sensor() {
 	gpio_config(MOTION_PIN, INPUT);
 }
 
-// setup as analog inputs
-// setup the SAAADC
 void initialize_light_sensors() {
-
-	//TODO set up SAADC and analog in
 	// Enable ADC
+	saadc_enable();
 
 	//configure mode: 
-
+	saadc_set_resolution(resolution);
+	set_sample_rate(cc,  mode);
+	set_result_pointer(result_ptr);
+	set_result_maxcnt(maxcnt);
 
 	// configure pins for ch0-3; pselp and config
+	saadc_set_pin_channel(0,  LIGHT0_PIN);
+	saadc_set_pin_channel(1,  LIGHT1_PIN);
+	saadc_set_pin_channel(2,  LIGHT2_PIN);
+	saadc_set_pin_channel(3,  LIGHT3_PIN);
 
-	// set not connected for ch4-7
-
+	saadc_configure_channel(0,  resp,  resn,  gain,  refsel,  tacq,  mode,  burst);
+	saadc_configure_channel(1,  resp,  resn,  gain,  refsel,  tacq,  mode,  burst);
+	saadc_configure_channel(2,  resp,  resn,  gain,  refsel,  tacq,  mode,  burst);
+	saadc_configure_channel(3,  resp,  resn,  gain,  refsel,  tacq,  mode,  burst);
 
 	// START adc
+	saadc_start();
 }
 
 // set up as digital input
@@ -37,7 +70,6 @@ void initialize_touch_sensors() {
 	gpio_config(TOUCH3_PIN, INPUT);
 	gpio_config(TOUCH4_PIN, INPUT);
 }
-
 
 //*********************
 // Initialization for actuators
@@ -71,9 +103,19 @@ bool read_motion_sensor(){
 }
 
 light_values_t read_light_sensors(){
-	light_values_t result;
-	//todo read from SAADC
-	//read from the result.ptr
+	saadc_sample();
+	while (!saadc_result_ready()) {
+		nrf_delay_ms(1);
+	}
+	saadc_clear_result_ready();
+
+	light_values_t lights; 
+	lights.light1 = LIGHT_SENSOR_RESULT_DATA.result1;
+	lights.light2 = LIGHT_SENSOR_RESULT_DATA.result2;
+	lights.light3 = LIGHT_SENSOR_RESULT_DATA.result3;
+	lights.light4 = LIGHT_SENSOR_RESULT_DATA.result4;
+
+	return lights;
 }
 
 touch_values_t read_touch_sensors(){

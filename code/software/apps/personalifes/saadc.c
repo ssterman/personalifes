@@ -2,6 +2,8 @@
 
 volatile SAADC_CONFIG_struct* SAADC_configuration = (volatile SAADC_CONFIG_struct *) SAADC_CONFIG_addr;
 volatile SAADC_SAMPLE_struct* SAADC_sample = (volatile SAADC_SAMPLE_struct *) SAADC_SAMPLE_addr;
+volatile SAADC_TASKS_struct* SAADC_tasks = (volatile SAADC_TASKS_struct *) SAADC_TASKS_addr;
+volatile SAADC_EVENTS_struct* SAADC_events = (volatile SAADC_EVENTS_struct *) SAADC_EVENTS_addr;
 
 //*******************
 // enable or disable
@@ -13,6 +15,26 @@ void saadc_enable() {
 
 void saadc_disable() {
 	(*SAADC_ENABLE_addr) = 0;
+}
+
+//*******************
+// sampling
+//*******************
+
+void saadc_start() {
+	SAADC_tasks->TASKS_START = 1;
+}
+
+void saadc_sample() {
+	SAADC_tasks->TASKS_SAMPLE = 1;
+}
+
+bool saadc_result_ready() {
+	return SAADC_events->EVENTS_END;
+}
+
+void saadc_clear_result_ready() {
+	SAADC_events->EVENTS_END = 0;
 }
 
 //*******************

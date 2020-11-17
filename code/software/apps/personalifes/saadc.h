@@ -77,6 +77,10 @@ typedef struct {
 
 void saadc_enable();
 void saadc_disable();
+void saadc_start();
+void saadc_sample();
+bool saadc_result_ready();
+void saadc_clear_result_ready();
 void saadc_set_resolution(uint32_t resolution);
 void set_sample_rate(uint32_t cc, uint32_t mode);
 void set_result_pointer(uint32_t ptr);

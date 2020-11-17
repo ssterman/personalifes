@@ -28,10 +28,10 @@ uint8_t LED_G_PIN = 19;
 uint8_t LED_B_PIN = 20;
 
 typedef struct {
-	uint8_t light1;
-	uint8_t light2;
-	uint8_t light3;
-	uint8_t light4;
+	int16_t light1;
+	int16_t light2;
+	int16_t light3;
+	int16_t light4;
 } light_values_t;
 
 typedef struct {
