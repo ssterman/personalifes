@@ -1,9 +1,11 @@
 #include "saadc.h"
+#include "nrf_delay.h"
 
 volatile SAADC_CONFIG_struct* SAADC_configuration = (volatile SAADC_CONFIG_struct *) SAADC_CONFIG_addr;
 volatile SAADC_SAMPLE_struct* SAADC_sample = (volatile SAADC_SAMPLE_struct *) SAADC_SAMPLE_addr;
 volatile SAADC_TASKS_struct* SAADC_tasks = (volatile SAADC_TASKS_struct *) SAADC_TASKS_addr;
 volatile SAADC_EVENTS_struct* SAADC_events = (volatile SAADC_EVENTS_struct *) SAADC_EVENTS_addr;
+volatile SAADC_RESULT_struct* SAADC_results = (volatile SAADC_RESULT_struct *) SAADC_RESULT_addr;
 
 //*******************
 // enable or disable
@@ -23,13 +25,34 @@ void saadc_disable() {
 
 void saadc_start() {
 	SAADC_tasks->TASKS_START = 1;
+	while (SAADC_events->EVENTS_STARTED != 1) {
+		nrf_delay_ms(1);
+	}
+	SAADC_events->EVENTS_STARTED = 0;	
 }
 
 void saadc_sample() {
 	SAADC_tasks->TASKS_SAMPLE = 1;
+	// while (SAADC_events->EVENTS_STARTED != 1) {
+	// 	nrf_delay_ms(1);
+	// }
+	// SAADC_tasks->TASKS_SAMPLE = 0;
+	while (SAADC_events->EVENTS_END == 0);
+	SAADC_events->EVENTS_END = 0;
+	printf("result amount: %d \n", SAADC_results->RESULT_AMOUNT);
+	printf("result pointer: %u, %u \n", SAADC_results->RESULT_PTR, *((uint32_t *) 0x40007062C));
+
+	//stop 
+	SAADC_tasks->TASKS_STOP = 1;
+	while (SAADC_events->EVENTS_STOPPED == 0);
+	SAADC_events->EVENTS_STOPPED = 0;
+
 }
 
 bool saadc_result_ready() {
+	if (SAADC_events->EVENTS_END) {
+		printf("result amount: %d \n", SAADC_results->RESULT_AMOUNT);
+	}
 	return SAADC_events->EVENTS_END;
 }
 
@@ -63,12 +86,15 @@ void set_sample_rate(uint32_t cc, uint32_t mode) {
 // set retrieval info
 //*******************
 
-void set_result_pointer(uint32_t * ptr) {
-	SAADC_sample->RESULT_PTR = (uint32_t) ptr;
+void set_result_pointer(uint32_t ptr) {
+	printf("(reg before set: ) %u\n", SAADC_results->RESULT_PTR);
+	printf("(ptr in set: ) %u\n", ptr);
+	SAADC_results->RESULT_PTR = ptr;
+	printf("(ptr after set: ) %u\n", SAADC_results->RESULT_PTR);
 }
 
 void set_result_maxcnt(uint32_t number_words) {
-	SAADC_sample->RESULT_MAXCNT = number_words;
+	SAADC_results->RESULT_MAXCNT = number_words;
 }
 
 

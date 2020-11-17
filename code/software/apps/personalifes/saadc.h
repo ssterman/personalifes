@@ -10,7 +10,8 @@
 #define SAADC_STATUS_addr (volatile uint32_t *) 0x40007400
 #define SAADC_ENABLE_addr (volatile uint32_t *) 0x40007500
 #define SAADC_CONFIG_addr (volatile uint32_t *) 0x40007510
-#define SAADC_SAMPLE_addr (volatile uint32_t *) 0x4000705F0
+#define SAADC_SAMPLE_addr (volatile uint32_t *) 0x400075F0
+#define SAADC_RESULT_addr (volatile uint32_t *) 0x4000762C
 
 // 0 4 8 C 10; 
 typedef struct {
@@ -75,11 +76,13 @@ typedef struct {
 	uint32_t RESOLUTION;
 	uint32_t OVERSAMPLE;
 	uint32_t SAMPLERATE;
+} SAADC_SAMPLE_struct;
+
+typedef struct {
 	uint32_t RESULT_PTR;
 	uint32_t RESULT_MAXCNT;
 	uint32_t RESULT_AMOUNT;
-} SAADC_SAMPLE_struct;
-
+} SAADC_RESULT_struct;
 
 void saadc_enable();
 void saadc_disable();
@@ -89,7 +92,7 @@ bool saadc_result_ready();
 void saadc_clear_result_ready();
 void saadc_set_resolution(uint32_t resolution);
 void set_sample_rate(uint32_t cc, uint32_t mode);
-void set_result_pointer(uint32_t * ptr);
+void set_result_pointer(uint32_t ptr);
 void set_result_maxcnt(uint32_t number_words);
 void saadc_set_pin_channel(uint32_t channel, uint32_t analog_pin);
 void saadc_configure_channel(uint32_t channel, uint32_t resp, uint32_t resn, uint32_t gain, uint32_t refsel, uint32_t tacq, uint32_t mode, uint32_t burst);

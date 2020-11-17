@@ -3,11 +3,12 @@
 #include "nrf.h"
 #include "stdbool.h"
 
-// Light sensors (4) require analog inputs.  
-#define LIGHT0_PIN  2  // AIN0
-#define LIGHT1_PIN  3  // AIN1
-#define LIGHT2_PIN  4  // AIN2
-#define LIGHT3_PIN  5  // AIN3
+// Light sensors (4) require analog inputs.
+// NOTE the defined values are the controls; the PINs used are in comments  
+#define LIGHT0_PIN 1 // Pin 2  // AIN0
+#define LIGHT1_PIN 2 // Pin 3  // AIN1
+#define LIGHT2_PIN 3 // Pin 4  // AIN2
+#define LIGHT3_PIN 4 // Pin 5  // AIN3
 
 // Motion sensor (1) requires digital input.
 #define MOTION_PIN  7

@@ -25,13 +25,13 @@ LIGHT_SENSOR_RESULT_DATA lsrd;
 uint32_t resolution = 0; // 8 bit
 uint32_t cc = 80;  //don't think this matters b/c in sample mode
 uint32_t samplemode = 0; // use sample mode
-uint32_t * result_ptr = (uint32_t *) &lsrd;
+uint32_t result_ptr = (uint32_t) &lsrd;
 uint32_t maxcnt = 4; //number of 32 bit words; must be >= num channels
-uint32_t resp = 1; //pulldown to ground
+uint32_t resp = 0; // bypass	//1; //pulldown to ground
 uint32_t resn = 0; //bypass
 uint32_t gain = 5; //1
 uint32_t refsel = 0; //internal 
-uint32_t tacq = 2; //10 microseconds
+uint32_t tacq = 1; //5 microseconds
 uint32_t mode = 0; //single ended
 uint32_t burst = 0; //off
 
@@ -45,13 +45,18 @@ void initialize_motion_sensor() {
 }
 
 void initialize_light_sensors() {
-	// Enable ADC
-	saadc_enable();
 
 	//configure mode: 
 	saadc_set_resolution(resolution);
 	set_sample_rate(cc,  samplemode);
+	printf("resultptr: %u, %u \n", result_ptr,  &lsrd);
 	set_result_pointer(result_ptr);
+	volatile SAADC_RESULT_struct* SAADC_results = (volatile SAADC_RESULT_struct *) SAADC_RESULT_addr;
+
+	printf("result pointer: %u \n", SAADC_results->RESULT_PTR);
+	// printf("contents: %u\n", *result_ptr);
+	// *result_ptr = 2;
+	// printf("contents: %u\n", *result_ptr);
 	set_result_maxcnt(maxcnt);
 
 	// configure pins for ch0-3; pselp and config
@@ -64,6 +69,8 @@ void initialize_light_sensors() {
 	saadc_configure_channel(1,  resp,  resn,  gain,  refsel,  tacq,  mode,  burst);
 	saadc_configure_channel(2,  resp,  resn,  gain,  refsel,  tacq,  mode,  burst);
 	saadc_configure_channel(3,  resp,  resn,  gain,  refsel,  tacq,  mode,  burst);
+
+	saadc_enable();
 
 	// START adc
 	saadc_start();
@@ -110,11 +117,11 @@ bool read_motion_sensor(){
 }
 
 light_values_t read_light_sensors() {
+	saadc_start();
+	//initialize_light_sensors();
 	saadc_sample();
-	while (!saadc_result_ready()) {
-		nrf_delay_ms(1);
-	}
-	saadc_clear_result_ready();
+
+	printf("lsrd: %d \n", lsrd.result1);
 
 	light_values_t lights; 
 	lights.light1 = lsrd.result1;
