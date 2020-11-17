@@ -87,10 +87,7 @@ void set_sample_rate(uint32_t cc, uint32_t mode) {
 //*******************
 
 void set_result_pointer(uint32_t ptr) {
-	printf("(reg before set: ) %u\n", SAADC_results->RESULT_PTR);
-	printf("(ptr in set: ) %u\n", ptr);
 	SAADC_results->RESULT_PTR = ptr;
-	printf("(ptr after set: ) %u\n", SAADC_results->RESULT_PTR);
 }
 
 void set_result_maxcnt(uint32_t number_words) {

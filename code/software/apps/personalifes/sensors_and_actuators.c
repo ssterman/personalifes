@@ -29,8 +29,8 @@ uint32_t result_ptr = (uint32_t) &lsrd;
 uint32_t maxcnt = 4; //number of 32 bit words; must be >= num channels
 uint32_t resp = 0; // bypass	//1; //pulldown to ground
 uint32_t resn = 0; //bypass
-uint32_t gain = 5; //1
-uint32_t refsel = 0; //internal 
+uint32_t gain = 0; //1/6
+uint32_t refsel = 0; //internal
 uint32_t tacq = 1; //5 microseconds
 uint32_t mode = 0; //single ended
 uint32_t burst = 0; //off
@@ -49,14 +49,7 @@ void initialize_light_sensors() {
 	//configure mode: 
 	saadc_set_resolution(resolution);
 	set_sample_rate(cc,  samplemode);
-	printf("resultptr: %u, %u \n", result_ptr,  &lsrd);
 	set_result_pointer(result_ptr);
-	volatile SAADC_RESULT_struct* SAADC_results = (volatile SAADC_RESULT_struct *) SAADC_RESULT_addr;
-
-	printf("result pointer: %u \n", SAADC_results->RESULT_PTR);
-	// printf("contents: %u\n", *result_ptr);
-	// *result_ptr = 2;
-	// printf("contents: %u\n", *result_ptr);
 	set_result_maxcnt(maxcnt);
 
 	// configure pins for ch0-3; pselp and config
