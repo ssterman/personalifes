@@ -105,7 +105,7 @@ void saadc_set_pin_channel(uint32_t channel, uint32_t analog_pin) {
 		default:
 			return;
 	}
-	config = analog_pin;
+	*config = analog_pin;
 }
 
 //********************
@@ -150,11 +150,11 @@ void saadc_configure_channel(uint32_t channel, uint32_t resp, uint32_t resn, uin
 		default:
 			return;
 	}
-	config |= (resp);
-	config |= (resn << 4);
-	config |= (gain << 8);
-	config |= (refsel << 12);
-	config |= (tacq << 16);
-	config |= (mode << 20);
-	config |= (burst << 24);
+	*config |= (resp);
+	*config |= (resn << 4);
+	*config |= (gain << 8);
+	*config |= (refsel << 12);
+	*config |= (tacq << 16);
+	*config |= (mode << 20);
+	*config |= (burst << 24);
 }
