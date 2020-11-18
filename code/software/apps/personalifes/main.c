@@ -237,19 +237,16 @@ int main(void) {
   printf("All sensors initialized!\n");
   virtual_timer_init();
 
-  set_LED_color(200,50,200);
+  set_LED_color(900,900,900);
 
-  while(1) {
-    LEDS_ON();
-
-  }
+  LEDS_ON();
 
   // loop forever
-  // while (1) {
-  //   nrf_delay_ms(4000);
-  //   printf("************loop\n");
-  //   light_values_t light_values = read_light_sensors();
-  //   printf("Light Values: %d, %d, %d, %d\n", light_values.light1, light_values.light2, light_values.light3, light_values.light4);
-  // }
+  while (1) {
+    nrf_delay_ms(1000);
+    printf("************loop\n");
+    light_values_t light_values = read_light_sensors();
+    printf("Light Values: %d, %d, %d, %d\n", light_values.light1, light_values.light2, light_values.light3, light_values.light4);
+  }
 
 }

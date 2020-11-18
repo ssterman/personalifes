@@ -71,6 +71,23 @@ void pwm_set_decoder(uint32_t load, uint32_t mode) {
 	PWM_configuration->DECODER = load + (mode << 8);
 }
 
+void pwm_set_refresh(uint32_t sequence, uint32_t refresh) {
+	if (sequence == 0) {
+		PWM_seq_0->SEQ_REFRESH = refresh;
+	} else {
+		PWM_seq_1->SEQ_REFRESH = refresh;
+	}
+}
+
+void pwm_set_enddelay(uint32_t sequence, uint32_t enddelay) {
+	if (sequence == 0) {
+		PWM_seq_0->SEQ_ENDDELAY = enddelay;
+	} else {
+		PWM_seq_1->SEQ_ENDDELAY = enddelay;
+	}
+
+}
+
 void pwm_set_sequence(uint32_t sequence, uint32_t ptr, uint32_t count, uint32_t refresh, uint32_t enddelay) {
 	if (sequence == 0) {
 		PWM_seq_0->SEQ_PTR = ptr;
@@ -83,6 +100,7 @@ void pwm_set_sequence(uint32_t sequence, uint32_t ptr, uint32_t count, uint32_t 
 		PWM_seq_1->SEQ_REFRESH = refresh;
 		PWM_seq_1->SEQ_ENDDELAY = enddelay; 
 	}
+
 }
 
 void pwm_start(uint32_t sequence) {

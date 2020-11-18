@@ -39,8 +39,8 @@ void saadc_sample() {
 	// SAADC_tasks->TASKS_SAMPLE = 0;
 	while (SAADC_events->EVENTS_END == 0);
 	SAADC_events->EVENTS_END = 0;
-	printf("result amount: %d \n", SAADC_results->RESULT_AMOUNT);
-	printf("result pointer: %u, %u \n", SAADC_results->RESULT_PTR, *((uint32_t *) 0x40007062C));
+	// printf("result amount: %d \n", SAADC_results->RESULT_AMOUNT);
+	// printf("result pointer: %u, %u \n", SAADC_results->RESULT_PTR, *((uint32_t *) 0x40007062C));
 
 	//stop 
 	SAADC_tasks->TASKS_STOP = 1;

@@ -115,21 +115,26 @@ void initialize_LED(){
 	gpio_clear(LED_G_PIN);
 	gpio_clear(LED_B_PIN);
 
-	//TODO configure PWM
 	pwm_configure_pin(0, LED_R_PIN, 1);
 	pwm_configure_pin(1, LED_G_PIN, 1);
 	pwm_configure_pin(2, LED_B_PIN, 1);
 
 	pwm_enable();
 	pwm_set_mode(0); //up
-	pwm_set_prescaler(1); //16MHz
+	pwm_set_prescaler(4); //1MHz
 
-	pwm_set_countertop(1600); //sets period, in combo with prescaler
-	pwm_set_loop(1);
+	pwm_set_countertop(1000); //sets period, in combo with prescaler
+	pwm_set_loop(0);
 	pwm_set_decoder(2, 0);  //individual, refresh
 
 	pwm_set_sequence(0, (uint32_t) &pwm_seq, 10000, 0, 0);
 	pwm_set_sequence(1, (uint32_t) &pwm_seq, 10000, 0, 0);
+
+	pwm_set_refresh(0, 0);
+ 	pwm_set_enddelay(0, 0);
+	pwm_set_refresh(1, 0);
+ 	pwm_set_enddelay(1, 0);
+
 }
 
 //*********************
@@ -145,15 +150,13 @@ light_values_t read_light_sensors() {
 	//initialize_light_sensors();
 	saadc_sample();
 
-	printf("lsrd: %d \n", lsrd.result_1_2);
-
 	light_values_t lights; 
 
 	// put this back to uin16t 
-	lights.light1 = lsrd.result_1_2 >> 16;
-	lights.light2 = lsrd.result_1_2 << 16 >> 16;
-	lights.light3 = lsrd.result_3_4 >> 16;
-	lights.light4 = lsrd.result_3_4 << 16 >> 16;
+	lights.light1 = lsrd.result_1_2 << 16 >> 16;
+	lights.light2 = lsrd.result_1_2 >> 16;
+	lights.light3 = lsrd.result_3_4 << 16 >> 16;
+	lights.light4 = lsrd.result_3_4 >> 16;
 
 	return lights;
 }
@@ -182,13 +185,16 @@ void turn_SMA_off(){
 }
 
 void set_LED_color(uint16_t r, uint16_t g, uint16_t b){
-	pwm_seq.duty_cycle_0_1 = r << 16 + g; //maybe other way? 
-	pwm_seq.duty_cycle_2_3 = b << 16;
+	pwm_seq.duty_cycle_0_1 = (r << 16) + g; //maybe other way? 
+	pwm_seq.duty_cycle_2_3 = (b << 16);
+
+	printf("pwmduty: %u \n", pwm_seq.duty_cycle_0_1);
 	// pwm_seq.duty_cycle_2 = b;
 } 
 
 void LEDS_ON() {
 	pwm_start(0);
+	pwm_start(1);
 }
 
 void LEDS_OFF() {

@@ -66,5 +66,7 @@ void pwm_set_countertop(uint32_t top);
 void pwm_set_loop(uint32_t playback);
 void pwm_set_decoder(uint32_t load, uint32_t mode);
 void pwm_set_sequence(uint32_t sequence, uint32_t ptr, uint32_t count, uint32_t refresh, uint32_t enddelay);
+void pwm_set_refresh(uint32_t sequence, uint32_t refresh);
+void pwm_set_enddelay(uint32_t sequence, uint32_t enddelay);
 void pwm_start(uint32_t sequence);
 void pwm_stop();
