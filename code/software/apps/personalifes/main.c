@@ -237,7 +237,13 @@ int main(void) {
   printf("All sensors initialized!\n");
   virtual_timer_init();
 
-  set_LED_color(1,1,1);
+  set_LED_color(200,50,200);
+
+  while(1) {
+    LEDS_ON();
+
+  }
+
   // loop forever
   // while (1) {
   //   nrf_delay_ms(4000);

@@ -9,15 +9,15 @@
 #include "kobukiUtilities.h"
 
 //*********************
-// Sensor Config
+// Config
 //*********************
 
 // Light Sensors
 typedef struct {
-	int16_t result1;
-	int16_t result2;
-	int16_t result3;
-	int16_t result4;
+	uint32_t result_1_2;
+	uint32_t result_3_4;
+	// int32_t result3;
+	// int32_t result4;
 } LIGHT_SENSOR_RESULT_DATA;
 
 LIGHT_SENSOR_RESULT_DATA lsrd;
@@ -34,6 +34,20 @@ uint32_t refsel = 0; //internal
 uint32_t tacq = 1; //5 microseconds
 uint32_t mode = 0; //single ended
 uint32_t burst = 0; //off
+
+
+// LEDs
+
+typedef struct {
+	uint32_t duty_cycle_0_1;
+	uint32_t duty_cycle_2_3;
+	// int16_t duty_cycle_2;
+	// int16_t duty_cycle_3;
+} PWM_DUTY_SEQ;
+
+PWM_DUTY_SEQ pwm_seq;
+
+
 
 //*********************
 // Initialization for sensors
@@ -97,8 +111,25 @@ void initialize_LED(){
 	gpio_config(LED_R_PIN, OUTPUT);
 	gpio_config(LED_G_PIN, OUTPUT);
 	gpio_config(LED_B_PIN, OUTPUT);
+	gpio_clear(LED_R_PIN);
+	gpio_clear(LED_G_PIN);
+	gpio_clear(LED_B_PIN);
 
 	//TODO configure PWM
+	pwm_configure_pin(0, LED_R_PIN, 1);
+	pwm_configure_pin(1, LED_G_PIN, 1);
+	pwm_configure_pin(2, LED_B_PIN, 1);
+
+	pwm_enable();
+	pwm_set_mode(0); //up
+	pwm_set_prescaler(1); //16MHz
+
+	pwm_set_countertop(1600); //sets period, in combo with prescaler
+	pwm_set_loop(1);
+	pwm_set_decoder(2, 0);  //individual, refresh
+
+	pwm_set_sequence(0, (uint32_t) &pwm_seq, 10000, 0, 0);
+	pwm_set_sequence(1, (uint32_t) &pwm_seq, 10000, 0, 0);
 }
 
 //*********************
@@ -114,13 +145,15 @@ light_values_t read_light_sensors() {
 	//initialize_light_sensors();
 	saadc_sample();
 
-	printf("lsrd: %d \n", lsrd.result1);
+	printf("lsrd: %d \n", lsrd.result_1_2);
 
 	light_values_t lights; 
-	lights.light1 = lsrd.result1;
-	lights.light2 = lsrd.result2;
-	lights.light3 = lsrd.result3;
-	lights.light4 = lsrd.result4;
+
+	// put this back to uin16t 
+	lights.light1 = lsrd.result_1_2 >> 16;
+	lights.light2 = lsrd.result_1_2 << 16 >> 16;
+	lights.light3 = lsrd.result_3_4 >> 16;
+	lights.light4 = lsrd.result_3_4 << 16 >> 16;
 
 	return lights;
 }
@@ -148,11 +181,18 @@ void turn_SMA_off(){
 	gpio_clear(SMA_PIN);
 }
 
-void set_LED_color(uint32_t r, uint32_t g, uint32_t b){
-	//TODO write via PWM module
-	gpio_clear(LED_R_PIN);
-	gpio_clear(LED_G_PIN);
-	gpio_set(LED_B_PIN);
+void set_LED_color(uint16_t r, uint16_t g, uint16_t b){
+	pwm_seq.duty_cycle_0_1 = r << 16 + g; //maybe other way? 
+	pwm_seq.duty_cycle_2_3 = b << 16;
+	// pwm_seq.duty_cycle_2 = b;
+} 
+
+void LEDS_ON() {
+	pwm_start(0);
+}
+
+void LEDS_OFF() {
+	pwm_stop();
 }
 
 void flashLEDs(){

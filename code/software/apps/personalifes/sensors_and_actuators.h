@@ -87,7 +87,10 @@ void turn_SMA_on();
 
 void turn_SMA_off();
 
-void set_LED_color(uint32_t r, uint32_t g, uint32_t b);
+void set_LED_color(uint16_t r, uint16_t g, uint16_t b);
 
 void flashLEDs();
 
+void LEDS_ON();
+
+void LEDS_OFF();
