@@ -41,8 +41,8 @@ uint32_t burst = 0; //off
 typedef struct {
 	uint32_t duty_cycle_0_1;
 	uint32_t duty_cycle_2_3;
-	// int16_t duty_cycle_2;
-	// int16_t duty_cycle_3;
+	// uint16_t duty_cycle_2;
+	// uint16_t duty_cycle_3;
 } PWM_DUTY_SEQ;
 
 PWM_DUTY_SEQ pwm_seq;
@@ -121,14 +121,14 @@ void initialize_LED(){
 
 	pwm_enable();
 	pwm_set_mode(0); //up
-	pwm_set_prescaler(4); //1MHz
+	pwm_set_prescaler(1); //16MHz
 
-	pwm_set_countertop(1000); //sets period, in combo with prescaler
-	pwm_set_loop(0);
+	pwm_set_countertop(255); //sets period, in combo with prescaler
+	pwm_set_loop(1000);
 	pwm_set_decoder(2, 0);  //individual, refresh
 
-	pwm_set_sequence(0, (uint32_t) &pwm_seq, 10000, 0, 0);
-	pwm_set_sequence(1, (uint32_t) &pwm_seq, 10000, 0, 0);
+	pwm_set_sequence(0, (uint32_t) &pwm_seq, 4, 0, 0);
+	pwm_set_sequence(1, (uint32_t) &pwm_seq, 4, 0, 0);
 
 	pwm_set_refresh(0, 0);
  	pwm_set_enddelay(0, 0);
@@ -184,9 +184,14 @@ void turn_SMA_off(){
 	gpio_clear(SMA_PIN);
 }
 
-void set_LED_color(uint16_t r, uint16_t g, uint16_t b){
-	pwm_seq.duty_cycle_0_1 = (r << 16) + g; //maybe other way? 
-	pwm_seq.duty_cycle_2_3 = (b << 16);
+void set_LED_color(uint32_t r, uint32_t g, uint32_t b){
+	//should check seqstarted event before updating
+	r = 255 - r;
+	b = 255 - b; 
+	g = 255 - g;
+
+	pwm_seq.duty_cycle_0_1 = r + (g << 16); 
+	pwm_seq.duty_cycle_2_3 = b; 
 
 	printf("pwmduty: %u \n", pwm_seq.duty_cycle_0_1);
 	// pwm_seq.duty_cycle_2 = b;
@@ -194,7 +199,7 @@ void set_LED_color(uint16_t r, uint16_t g, uint16_t b){
 
 void LEDS_ON() {
 	pwm_start(0);
-	pwm_start(1);
+	//pwm_start(1);
 }
 
 void LEDS_OFF() {

@@ -233,13 +233,14 @@ int main(void) {
   initialize_touch_sensors();
   initialize_light_sensors();
   initialize_motion_sensor();
+  set_LED_color(190, 0, 90);
+
   initialize_LED();
   printf("All sensors initialized!\n");
   virtual_timer_init();
 
-  set_LED_color(900,900,900);
 
-  LEDS_ON();
+   LEDS_ON();
 
   // loop forever
   while (1) {
