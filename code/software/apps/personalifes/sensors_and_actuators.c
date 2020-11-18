@@ -115,9 +115,9 @@ void initialize_LED(){
 	gpio_clear(LED_G_PIN);
 	gpio_clear(LED_B_PIN);
 
-	pwm_configure_pin(0, LED_R_PIN, 1);
-	pwm_configure_pin(1, LED_G_PIN, 1);
-	pwm_configure_pin(2, LED_B_PIN, 1);
+	pwm_configure_pin(0, LED_R_PIN, 0);
+	pwm_configure_pin(1, LED_G_PIN, 0);
+	pwm_configure_pin(2, LED_B_PIN, 0);
 
 	pwm_enable();
 	pwm_set_mode(0); //up

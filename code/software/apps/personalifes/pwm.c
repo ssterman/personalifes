@@ -100,7 +100,6 @@ void pwm_set_sequence(uint32_t sequence, uint32_t ptr, uint32_t count, uint32_t 
 		PWM_seq_1->SEQ_REFRESH = refresh;
 		PWM_seq_1->SEQ_ENDDELAY = enddelay; 
 	}
-
 }
 
 void pwm_start(uint32_t sequence) {
