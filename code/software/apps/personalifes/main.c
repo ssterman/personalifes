@@ -240,14 +240,62 @@ int main(void) {
   virtual_timer_init();
 
 
-   LEDS_ON();
+  LEDS_ON();
+
+  uint32_t r = 0;
+  uint32_t g = 0;
+  uint32_t b = 0;
+
+  bool redup = true;
+  bool greenup = true;
+  bool blueup = true;
 
   // loop forever
   while (1) {
-    nrf_delay_ms(1000);
-    printf("************loop\n");
-    light_values_t light_values = read_light_sensors();
-    printf("Light Values: %d, %d, %d, %d\n", light_values.light1, light_values.light2, light_values.light3, light_values.light4);
+    nrf_delay_ms(100);
+    // printf("************loop\n");
+    // light_values_t light_values = read_light_sensors();
+    // printf("Light Values: %d, %d, %d, %d\n", light_values.light1, light_values.light2, light_values.light3, light_values.light4);
+  
+    printf("%d, %d %d \n", redup, (!greenup) && (g > 0), blueup);
+
+    if (redup && r < 255) {
+      r = (r + 5);
+    } else if (redup && r >= 255) {
+      redup = false;
+    } else if ((!redup) && (r > 0)) {
+      r = r - 5;
+    } else {
+      redup = true;
+    }
+
+    if (greenup && g < 255) {
+      g = (g + 10);
+    } else if (greenup && g >= 255) {
+      greenup = false;
+    } else if ((!greenup) && (g > 0)) {
+      g = (g - 10);
+    } else {
+      greenup = true;
+    }
+
+    if (blueup && b < 255) {
+      b = (b + 15);
+    } else if (blueup && b >= 255) {
+      blueup = false;
+    } else if ((!blueup) && (b > 0)) {
+      b = b - 15;
+    } else {
+      blueup = true;
+    }
+
+    printf("rgb %u %u %u \n",r, g, b);
+    // g = (g + 10) % 255;
+    // b = (b + 20) % 255;
+
+    set_LED_color(r, g, b);
+    LEDS_ON();
+
   }
 
 }
