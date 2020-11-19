@@ -24,15 +24,17 @@
 
 //driver for kobuki
 #include "buckler.h"
-#include "display.h"
+// #include "display.h"
 #include "kobukiActuator.h"
 #include "kobukiSensorPoll.h"
 #include "kobukiSensorTypes.h"
 #include "kobukiUtilities.h"
-#include "lsm9ds1.h"
+// #include "lsm9ds1.h"
+
+
 
 // I2C manager
-NRF_TWI_MNGR_DEF(twi_mngr_instance, 5, 0);
+// NRF_TWI_MNGR_DEF(twi_mngr_instance, 5, 0);
 
 typedef enum {
   AMBIENT,
@@ -214,9 +216,7 @@ int main(void) {
 
   error_code = nrf_drv_spi_init(&spi_instance, &spi_config, NULL, NULL);
   APP_ERROR_CHECK(error_code);
-  display_init(&spi_instance);
-  display_write("Hello, Human!", DISPLAY_LINE_0);
-  printf("Display initialized!\n");
+
 
   // initialize i2c master (two wire interface)
   // nrf_drv_twi_config_t i2c_config = NRF_DRV_TWI_DEFAULT_CONFIG;
@@ -252,49 +252,52 @@ int main(void) {
 
   // loop forever
   while (1) {
-    nrf_delay_ms(100);
+    kobukiSensorPoll(&sensors);
+    kobukiDriveDirect(20,20);
+
+    nrf_delay_ms(1);
     // printf("************loop\n");
     // light_values_t light_values = read_light_sensors();
     // printf("Light Values: %d, %d, %d, %d\n", light_values.light1, light_values.light2, light_values.light3, light_values.light4);
   
-    printf("%d, %d %d \n", redup, (!greenup) && (g > 0), blueup);
+    // printf("%d, %d %d \n", redup, (!greenup) && (g > 0), blueup);
 
-    if (redup && r < 255) {
-      r = (r + 5);
-    } else if (redup && r >= 255) {
-      redup = false;
-    } else if ((!redup) && (r > 0)) {
-      r = r - 5;
-    } else {
-      redup = true;
-    }
+    // if (redup && r < 255) {
+    //   r = (r + 5);
+    // } else if (redup && r >= 255) {
+    //   redup = false;
+    // } else if ((!redup) && (r > 0)) {
+    //   r = r - 5;
+    // } else {
+    //   redup = true;
+    // }
 
-    if (greenup && g < 255) {
-      g = (g + 10);
-    } else if (greenup && g >= 255) {
-      greenup = false;
-    } else if ((!greenup) && (g > 0)) {
-      g = (g - 10);
-    } else {
-      greenup = true;
-    }
+    // if (greenup && g < 255) {
+    //   g = (g + 10);
+    // } else if (greenup && g >= 255) {
+    //   greenup = false;
+    // } else if ((!greenup) && (g > 0)) {
+    //   g = (g - 10);
+    // } else {
+    //   greenup = true;
+    // }
 
-    if (blueup && b < 255) {
-      b = (b + 15);
-    } else if (blueup && b >= 255) {
-      blueup = false;
-    } else if ((!blueup) && (b > 0)) {
-      b = b - 15;
-    } else {
-      blueup = true;
-    }
+    // if (blueup && b < 255) {
+    //   b = (b + 15);
+    // } else if (blueup && b >= 255) {
+    //   blueup = false;
+    // } else if ((!blueup) && (b > 0)) {
+    //   b = b - 15;
+    // } else {
+    //   blueup = true;
+    // }
 
-    printf("rgb %u %u %u \n",r, g, b);
-    // g = (g + 10) % 255;
-    // b = (b + 20) % 255;
+    // printf("rgb %u %u %u \n",r, g, b);
+    // // g = (g + 10) % 255;
+    // // b = (b + 20) % 255;
 
-    set_LED_color(r, g, b);
-    LEDS_ON();
+    // set_LED_color(r, g, b);
+    // LEDS_ON();
 
   }
 
