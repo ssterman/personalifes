@@ -1,9 +1,11 @@
 #include "saadc.h"
+#include "nrf_delay.h"
 
 volatile SAADC_CONFIG_struct* SAADC_configuration = (volatile SAADC_CONFIG_struct *) SAADC_CONFIG_addr;
 volatile SAADC_SAMPLE_struct* SAADC_sample = (volatile SAADC_SAMPLE_struct *) SAADC_SAMPLE_addr;
 volatile SAADC_TASKS_struct* SAADC_tasks = (volatile SAADC_TASKS_struct *) SAADC_TASKS_addr;
 volatile SAADC_EVENTS_struct* SAADC_events = (volatile SAADC_EVENTS_struct *) SAADC_EVENTS_addr;
+volatile SAADC_RESULT_struct* SAADC_results = (volatile SAADC_RESULT_struct *) SAADC_RESULT_addr;
 
 //*******************
 // enable or disable
@@ -23,13 +25,34 @@ void saadc_disable() {
 
 void saadc_start() {
 	SAADC_tasks->TASKS_START = 1;
+	while (SAADC_events->EVENTS_STARTED != 1) {
+		nrf_delay_ms(1);
+	}
+	SAADC_events->EVENTS_STARTED = 0;	
 }
 
 void saadc_sample() {
 	SAADC_tasks->TASKS_SAMPLE = 1;
+	// while (SAADC_events->EVENTS_STARTED != 1) {
+	// 	nrf_delay_ms(1);
+	// }
+	// SAADC_tasks->TASKS_SAMPLE = 0;
+	while (SAADC_events->EVENTS_END == 0);
+	SAADC_events->EVENTS_END = 0;
+	// printf("result amount: %d \n", SAADC_results->RESULT_AMOUNT);
+	// printf("result pointer: %u, %u \n", SAADC_results->RESULT_PTR, *((uint32_t *) 0x40007062C));
+
+	//stop 
+	SAADC_tasks->TASKS_STOP = 1;
+	while (SAADC_events->EVENTS_STOPPED == 0);
+	SAADC_events->EVENTS_STOPPED = 0;
+
 }
 
 bool saadc_result_ready() {
+	if (SAADC_events->EVENTS_END) {
+		printf("result amount: %d \n", SAADC_results->RESULT_AMOUNT);
+	}
 	return SAADC_events->EVENTS_END;
 }
 
@@ -64,11 +87,11 @@ void set_sample_rate(uint32_t cc, uint32_t mode) {
 //*******************
 
 void set_result_pointer(uint32_t ptr) {
-	SAADC_sample->RESULT_PTR = ptr;
+	SAADC_results->RESULT_PTR = ptr;
 }
 
 void set_result_maxcnt(uint32_t number_words) {
-	SAADC_sample->RESULT_MAXCNT = number_words;
+	SAADC_results->RESULT_MAXCNT = number_words;
 }
 
 
@@ -76,36 +99,34 @@ void set_result_maxcnt(uint32_t number_words) {
 // set pin
 //********************
 void saadc_set_pin_channel(uint32_t channel, uint32_t analog_pin) {
-	uint32_t config; 
 	switch(channel) {
 		case 0:
-			config = SAADC_configuration->CH0_PSELP;
+			SAADC_configuration->CH0_PSELP = analog_pin;
 			break;
 		case 1:
-			config = SAADC_configuration->CH1_PSELP;
+			SAADC_configuration->CH1_PSELP = analog_pin;
 			break;
 		case 2:
-			config = SAADC_configuration->CH2_PSELP;
+			SAADC_configuration->CH2_PSELP = analog_pin;
 			break;
 		case 3:
-			config = SAADC_configuration->CH3_PSELP;
+			SAADC_configuration->CH3_PSELP = analog_pin;
 			break;
 		case 4:	
-			config = SAADC_configuration->CH4_PSELP;
+			SAADC_configuration->CH4_PSELP = analog_pin;
 			break;
 		case 5:
-			config = SAADC_configuration->CH5_PSELP;
+			SAADC_configuration->CH5_PSELP = analog_pin;
 			break;
 		case 6:
-			config = SAADC_configuration->CH6_PSELP;
+			SAADC_configuration->CH6_PSELP = analog_pin;
 			break;
 		case 7:
-			config = SAADC_configuration->CH7_PSELP;
+			SAADC_configuration->CH7_PSELP = analog_pin;
 			break;
 		default:
 			return;
 	}
-	*config = analog_pin;
 }
 
 //********************
@@ -121,40 +142,33 @@ void saadc_set_pin_channel(uint32_t channel, uint32_t analog_pin) {
 // resn: 0 (bypass)
 // resp: 1 (pulldown to ground)
 void saadc_configure_channel(uint32_t channel, uint32_t resp, uint32_t resn, uint32_t gain, uint32_t refsel, uint32_t tacq, uint32_t mode, uint32_t burst) {
-	(volatile uint32_t *) config; 
+	uint32_t value = (resp) +  (resn << 4) + (gain << 8) + (refsel << 12) + (tacq << 16) + (mode << 20) + (burst << 24);
 	switch(channel) {
 		case 0:
-			config = SAADC_configuration->CH0_CONFIG;
+			SAADC_configuration->CH0_CONFIG = value;
 			break;
 		case 1:
-			config = SAADC_configuration->CH1_CONFIG;
+			SAADC_configuration->CH1_CONFIG = value;
 			break;
 		case 2:
-			config = SAADC_configuration->CH2_CONFIG;
+			SAADC_configuration->CH2_CONFIG = value;
 			break;
 		case 3:
-			config = SAADC_configuration->CH3_CONFIG;
+			SAADC_configuration->CH3_CONFIG = value;
 			break;
 		case 4:	
-			config = SAADC_configuration->CH4_CONFIG;
+			SAADC_configuration->CH4_CONFIG = value;
 				break;
 		case 5:
-			config = SAADC_configuration->CH5_CONFIG;
+			SAADC_configuration->CH5_CONFIG = value;
 			break;
 		case 6:
-			config = SAADC_configuration->CH6_CONFIG;
+			SAADC_configuration->CH6_CONFIG = value;
 			break;
 		case 7:
-			config = SAADC_configuration->CH7_CONFIG;
+			SAADC_configuration->CH7_CONFIG = value;
 			break;
 		default:
 			return;
 	}
-	*config |= (resp);
-	*config |= (resn << 4);
-	*config |= (gain << 8);
-	*config |= (refsel << 12);
-	*config |= (tacq << 16);
-	*config |= (mode << 20);
-	*config |= (burst << 24);
 }

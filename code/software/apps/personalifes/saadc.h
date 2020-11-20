@@ -1,10 +1,17 @@
-#define SAADC_TASKS_addr (volatile uint32_t *) 0x40007000;
-#define SAADC_EVENTS_addr (volatile uint32_t *) 0x40007100;
-#define SAADC_INTERRUPTS_addr (volatile uint32_t *) 0x40007300;
-#define SAADC_STATUS_addr (volatile uint32_t *) 0x40007400;
-#define SAADC_ENABLE_addr (volatile uint32_t *) 0x40007500;
-#define SAADC_CONFIG_addr (volatile uint32_t *) 0x40007510;
-#define SAADC_SAMPLE_addr (volatile uint32_t *) 0x4000705F0;
+#pragma once
+
+#include "nrf.h"
+#include "stdbool.h"
+
+
+#define SAADC_TASKS_addr (volatile uint32_t *) 0x40007000
+#define SAADC_EVENTS_addr (volatile uint32_t *) 0x40007100
+#define SAADC_INTERRUPTS_addr (volatile uint32_t *) 0x40007300
+#define SAADC_STATUS_addr (volatile uint32_t *) 0x40007400
+#define SAADC_ENABLE_addr (volatile uint32_t *) 0x40007500
+#define SAADC_CONFIG_addr (volatile uint32_t *) 0x40007510
+#define SAADC_SAMPLE_addr (volatile uint32_t *) 0x400075F0
+#define SAADC_RESULT_addr (volatile uint32_t *) 0x4000762C
 
 // 0 4 8 C 10; 
 typedef struct {
@@ -69,11 +76,13 @@ typedef struct {
 	uint32_t RESOLUTION;
 	uint32_t OVERSAMPLE;
 	uint32_t SAMPLERATE;
+} SAADC_SAMPLE_struct;
+
+typedef struct {
 	uint32_t RESULT_PTR;
 	uint32_t RESULT_MAXCNT;
 	uint32_t RESULT_AMOUNT;
-} SAADC_SAMPLE_struct;
-
+} SAADC_RESULT_struct;
 
 void saadc_enable();
 void saadc_disable();

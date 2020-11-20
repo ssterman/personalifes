@@ -1,32 +1,53 @@
 #include "sensors_and_actuators.h"
 #include "gpio.h"
 #include "saadc.h"
+#include "pwm.h"
 #include "nrf_delay.h"
+#include "kobukiActuator.h"
+#include "kobukiSensorPoll.h"
+#include "kobukiSensorTypes.h"
+#include "kobukiUtilities.h"
 
 //*********************
-// Sensor Config
+// Config
 //*********************
 
 // Light Sensors
-struct LIGHT_SENSOR_RESULT_DATA = {
-	int16_t result1;
-	int16_t result2;
-	int16_t result3;
-	int16_t result4;
-};
+typedef struct {
+	uint32_t result_1_2;
+	uint32_t result_3_4;
+	// int32_t result3;
+	// int32_t result4;
+} LIGHT_SENSOR_RESULT_DATA;
+
+LIGHT_SENSOR_RESULT_DATA lsrd;
 
 uint32_t resolution = 0; // 8 bit
 uint32_t cc = 80;  //don't think this matters b/c in sample mode
-uint32_t mode = 0; // use sample mode
-uint32_t result_ptr = & LIGHT_SENSOR_RESULT_DATA;
+uint32_t samplemode = 0; // use sample mode
+uint32_t result_ptr = (uint32_t) &lsrd;
 uint32_t maxcnt = 4; //number of 32 bit words; must be >= num channels
-uint32_t resp = 1; //pulldown to ground
+uint32_t resp = 0; // bypass	//1; //pulldown to ground
 uint32_t resn = 0; //bypass
-uint32_t gain = 5; //1
-uint32_t refsel = 0; //internal 
-uint32_t tacq = 2; //10 microseconds
+uint32_t gain = 0; //1/6
+uint32_t refsel = 0; //internal
+uint32_t tacq = 1; //5 microseconds
 uint32_t mode = 0; //single ended
 uint32_t burst = 0; //off
+
+
+// LEDs
+
+typedef struct {
+	uint32_t duty_cycle_0_1;
+	uint32_t duty_cycle_2_3;
+	// uint16_t duty_cycle_2;
+	// uint16_t duty_cycle_3;
+} PWM_DUTY_SEQ;
+
+PWM_DUTY_SEQ pwm_seq;
+
+
 
 //*********************
 // Initialization for sensors
@@ -38,12 +59,10 @@ void initialize_motion_sensor() {
 }
 
 void initialize_light_sensors() {
-	// Enable ADC
-	saadc_enable();
 
 	//configure mode: 
 	saadc_set_resolution(resolution);
-	set_sample_rate(cc,  mode);
+	set_sample_rate(cc,  samplemode);
 	set_result_pointer(result_ptr);
 	set_result_maxcnt(maxcnt);
 
@@ -57,6 +76,8 @@ void initialize_light_sensors() {
 	saadc_configure_channel(1,  resp,  resn,  gain,  refsel,  tacq,  mode,  burst);
 	saadc_configure_channel(2,  resp,  resn,  gain,  refsel,  tacq,  mode,  burst);
 	saadc_configure_channel(3,  resp,  resn,  gain,  refsel,  tacq,  mode,  burst);
+
+	saadc_enable();
 
 	// START adc
 	saadc_start();
@@ -90,8 +111,30 @@ void initialize_LED(){
 	gpio_config(LED_R_PIN, OUTPUT);
 	gpio_config(LED_G_PIN, OUTPUT);
 	gpio_config(LED_B_PIN, OUTPUT);
+	gpio_clear(LED_R_PIN);
+	gpio_clear(LED_G_PIN);
+	gpio_clear(LED_B_PIN);
 
-	//TODO configure PWM
+	pwm_configure_pin(0, LED_R_PIN, 0);
+	pwm_configure_pin(1, LED_G_PIN, 0);
+	pwm_configure_pin(2, LED_B_PIN, 0);
+
+	pwm_enable();
+	pwm_set_mode(0); //up
+	pwm_set_prescaler(1); //16MHz
+
+	pwm_set_countertop(255); //sets period, in combo with prescaler
+	pwm_set_loop(1000);
+	pwm_set_decoder(2, 0);  //individual, refresh
+
+	pwm_set_sequence(0, (uint32_t) &pwm_seq, 4, 0, 0);
+	pwm_set_sequence(1, (uint32_t) &pwm_seq, 4, 0, 0);
+
+	pwm_set_refresh(0, 0);
+ 	pwm_set_enddelay(0, 0);
+	pwm_set_refresh(1, 0);
+ 	pwm_set_enddelay(1, 0);
+
 }
 
 //*********************
@@ -103,17 +146,17 @@ bool read_motion_sensor(){
 }
 
 light_values_t read_light_sensors() {
+	saadc_start();
+	//initialize_light_sensors();
 	saadc_sample();
-	while (!saadc_result_ready()) {
-		nrf_delay_ms(1);
-	}
-	saadc_clear_result_ready();
 
 	light_values_t lights; 
-	lights.light1 = LIGHT_SENSOR_RESULT_DATA.result1;
-	lights.light2 = LIGHT_SENSOR_RESULT_DATA.result2;
-	lights.light3 = LIGHT_SENSOR_RESULT_DATA.result3;
-	lights.light4 = LIGHT_SENSOR_RESULT_DATA.result4;
+
+	// put this back to uin16t 
+	lights.light1 = lsrd.result_1_2 << 16 >> 16;
+	lights.light2 = lsrd.result_1_2 >> 16;
+	lights.light3 = lsrd.result_3_4 << 16 >> 16;
+	lights.light4 = lsrd.result_3_4 >> 16;
 
 	return lights;
 }
@@ -141,8 +184,26 @@ void turn_SMA_off(){
 	gpio_clear(SMA_PIN);
 }
 
-void set_LED_color(uint8_t r, uint8_t g, uint8_t b){
-	//TODO write via PWM module
+void set_LED_color(uint32_t r, uint32_t g, uint32_t b){
+	//should check seqstarted event before updating
+	r = 255 - r;
+	b = 255 - b; 
+	g = 255 - g;
+
+	pwm_seq.duty_cycle_0_1 = r + (g << 16); 
+	pwm_seq.duty_cycle_2_3 = b; 
+
+	printf("pwmduty: %u \n", pwm_seq.duty_cycle_0_1);
+	// pwm_seq.duty_cycle_2 = b;
+} 
+
+void LEDS_ON() {
+	pwm_start(0);
+	//pwm_start(1);
+}
+
+void LEDS_OFF() {
+	pwm_stop();
 }
 
 void flashLEDs(){
