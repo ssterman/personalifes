@@ -1,0 +1,9 @@
+
+Light sensors:
+  10k ohms, in series with the photoresistor.  
+  
+LEDs:
+  R: 67 ohm 
+  G: 10 ohm
+  B: 10 ohm
+  
