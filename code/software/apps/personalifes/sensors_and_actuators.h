@@ -35,7 +35,8 @@
 //light sensors
 #define MAX_LIGHT 150
 #define MIN_LIGHT 10
-#define SCALER (255/(MAX_LIGHT-MIN_LIGHT))
+//#define SCALER (255/(MAX_LIGHT-MIN_LIGHT))
+#define SCALER 1.82
 
 typedef struct {
 	int16_t light1;
