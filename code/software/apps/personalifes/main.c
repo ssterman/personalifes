@@ -22,6 +22,7 @@
 #include "buckler.h"
 #include "gpio.h"// Blink app
 #include "sensors_and_actuators.h"
+#include "virtual_timer.h"
 
 //driver for kobuki
 #include "buckler.h"
@@ -67,15 +68,15 @@ static float measure_distance(uint16_t current_encoder,
   return CONVERSION * ticks;
 }
 
-static float measure_distance_reversed(uint16_t current_encoder,
-                                       uint16_t previous_encoder) {
-  // take the absolute value of ticks traveled before negating
-  const float CONVERSION = 0.0006108;
-  uint16_t ticks = current_encoder <= previous_encoder
-    ? previous_encoder - current_encoder
-    : previous_encoder + (UINT16_MAX - current_encoder);
-  return -CONVERSION * ticks;
-}
+// static float measure_distance_reversed(uint16_t current_encoder,
+//                                        uint16_t previous_encoder) {
+//   // take the absolute value of ticks traveled before negating
+//   const float CONVERSION = 0.0006108;
+//   uint16_t ticks = current_encoder <= previous_encoder
+//     ? previous_encoder - current_encoder
+//     : previous_encoder + (UINT16_MAX - current_encoder);
+//   return -CONVERSION * ticks;
+// }
 
 static uint16_t last_encoder = 0;
 static float distance_traveled = 0.0;
@@ -150,7 +151,7 @@ void state_machine() {
         float value = measure_distance(curr_encoder, last_encoder);
         distance_traveled += value;
         last_encoder = curr_encoder;
-        facing_motion = distance_traveled;
+        //facing_motion = distance_traveled;
         if (fabs(current_light_val - previous_light_val) >= scared_light_thresh) {
           state = SCARED;
           timer_start = current_time;
