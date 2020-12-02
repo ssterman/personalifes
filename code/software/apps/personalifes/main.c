@@ -259,12 +259,12 @@ int main(void) {
   printf("All sensors initialized!\n");
   virtual_timer_init();
 
+    current_light = read_light_sensors();
     previous_light = current_light;
     previous_light1_val = previous_light.light1;
     previous_light2_val = previous_light.light2;
     previous_light3_val = previous_light.light3;
     previous_light4_val = previous_light.light4;
-    current_light = read_light_sensors();
     current_light1_val = current_light.light1;
     current_light2_val = current_light.light2;
     current_light3_val = current_light.light3;
@@ -273,7 +273,7 @@ int main(void) {
     current_light_val = (current_light1_val + current_light2_val + current_light3_val + current_light4_val)/4;
     ambient_light = (current_light_val - MIN_LIGHT) * SCALER;
     set_LED_color(255/ambient_light, 244/ambient_light, 229/ambient_light);
-  LEDS_ON();
+    LEDS_ON();
 
   //uint32_t r = 0;
   //uint32_t g = 0;
