@@ -308,8 +308,8 @@ int main(void) {
     current_light_val = (current_light1_val + current_light2_val + current_light3_val + current_light4_val)/4;
     ambient_light = (current_light_val - MIN_LIGHT) * SCALER;
     printf("The current ambient light is: %d \n", current_light_val);
-    set_LED_color(255/ambient_light, 244/ambient_light, 229/ambient_light);
-    printf("The set light is r = %d, g = %d, b = %d \n", 255/ambient_light, 244/ambient_light, 229/ambient_light);
+    set_LED_color(255-ambient_light, 244-ambient_light, 229-ambient_light);
+    printf("The set light is r = %d, g = %d, b = %d \n", 255-ambient_light, 244-ambient_light, 229-ambient_light);
     motion_yn = read_motion_sensor();
     printf("is there motion %d \n", motion_yn);
     touch_struct = read_touch_sensors();
