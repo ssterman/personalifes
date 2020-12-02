@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <math.h>
 
 #include "app_error.h"
 #include "app_timer.h"
@@ -43,13 +44,18 @@ typedef enum {
   SCARED,
 } flower_state_t;
 
-// light_values_t current_light, previous_light;
-// uint16_t = scared_light_thresh = ;
-// uint32_t timer_thresh = , turn_thresh = , timer_scared_thresh = ;
-// uint8_t r, b, g;
-// bool motion_yn, facing_motion;
-// touch_values_t touch_state;
-// uint32_t current_time, previous_time, timer_start, timer_counter;
+light_values_t current_light, previous_light;
+// put into a separate file 
+uint16_t scared_light_thresh = ;
+uint16_t previous_light1_val, previous_light2_val, previous_light3_val, previous_light4_val;
+uint16_t current_light1_val, current_light2_val, current_light3_val, current_light4_val;
+uint32_t current_light_val, previous_light_val, ambient_light;
+// calculate turn_thresh for 180 degrees
+uint32_t timer_thresh = 15000000, turn_thresh = , timer_scared_thresh = 15000000, average_light;
+uint8_t r, b, g;
+bool motion_yn, facing_motion, touch_state;
+touch_values_t touch_struct;
+uint32_t current_time, previous_time, timer_start, timer_counter;
 
 static float measure_distance(uint16_t current_encoder,
                               uint16_t previous_encoder) {
@@ -79,110 +85,123 @@ static flower_state_t state = AMBIENT;
 
 
 void state_machine() {
-  //  while (1) {
-  //   kobukiSensorPoll(&sensors);
-  //   previous_time = current_time;
-  //   current_time = read_timer();
-  //   previous_light = current_light;
-  //   previous_light_val = 
-  //   current_light = read_light_sensors();
-  //   current_light_val = 
-  //   motion_yn = read_motion_sensor();
-  //   touch_state = read_touch_sensors();
-  //   nrf_delay_ms(1);
+   while (1) {
+    kobukiSensorPoll(&sensors);
+    previous_time = current_time;
+    current_time = read_timer();
+    previous_light = current_light;
+    previous_light1_val = previous_light.light1;
+    previous_light2_val = previous_light.light2;
+    previous_light3_val = previous_light.light3;
+    previous_light4_val = previous_light.light4;
+    current_light = read_light_sensors();
+    current_light1_val = current_light.light1;
+    current_light2_val = current_light.light2;
+    current_light3_val = current_light.light3;
+    current_light4_val = current_light.light4;
+    previous_light_val = (previous_light1_val + previous_light2_val + previous_light3_val + previous_light4_val)/4;
+    current_light_val = (current_light1_val + current_light2_val + current_light3_val + current_light4_val)/4;
+    motion_yn = read_motion_sensor();
+    touch_struct = read_touch_sensors();
+    touch_state = (touch_struct.touch0 || touch_struct.touch1 || touch_struct.touch2 || touch_struct.touch3 || touch_struct.touch4);
+    nrf_delay_ms(1);
 
-  //   switch(state) {
-  //     case AMBIENT: {
-  //       //set LEDs based on ambient light
-  //       // transition logic
-  //       if (touch_state) {
-  //         state = TOUCH;
-  //         timer_start = current_time;
-  //         turn_SMA_on();
-  //       }
-  //       else if (motion_yn) {
-  //         state = ATTENTION;
-  //         last_encoder = sensors.leftWheelEncoder;
-  //         distance_traveled = 0.0;
-  //         timer_start = current_time;
-  //         kobukiDriveDirect(5, 0);
-  //         turn_SMA_on();
-  //       }
-  //       else if (fabs(current_light_val - previous_light_val) >= scared_light_thresh) {
-  //         state = SCARED;
-  //         timer_start = current_time;
-  //         flashLEDs();
-  //         turn_SMA_on();
-  //       }
-  //       else {
-  //         r = 
-  //         g = 
-  //         b = 
-  //         set_LED_color(r, g, b);
-  //       }
-  //       break; // each case needs to end with break!
-  //     }
+    switch(state) {
+      case AMBIENT: {
+        //set LEDs based on ambient light
+        // transition logic
+        if (touch_state) {
+          state = TOUCH;
+          timer_start = current_time;
+          turn_SMA_on();
+        }
+        else if (motion_yn) {
+          state = ATTENTION;
+          last_encoder = sensors.leftWheelEncoder;
+          distance_traveled = 0.0;
+          timer_start = current_time;
+          // to turn, need to operate at 20
+          kobukiDriveDirect(20, 0);
+          turn_SMA_on();
+        }
+        // average the 4 light sensors 
+        else if (fabs(current_light_val - previous_light_val) >= scared_light_thresh) {
+          state = SCARED;
+          timer_start = current_time;
+          flashLEDs((current_time - timer_start));
+          turn_SMA_on();
+        }
+        else {
+          // just scale down numbers up or down based on ambient light
+          ambient_light = (current_light_val - MIN_LIGHT) * SCALER;
+          r = 255/ambient_light;
+          g = 244/ambient_light;
+          b = 229/ambient_light;
+          set_LED_color(r, g, b);
+        }
+        break; // each case needs to end with break!
+      }
 
-  //     case ATTENTION: {
-  //       //
-  //       timer_counter = current_time - timer_start;
-  //       uint16_t curr_encoder = sensors.leftWheelEncoder;
-  //       float value = measure_distance(curr_encoder, last_encoder);
-  //       distance_traveled += value;
-  //       last_encoder = curr_encoder;
-  //       facing motion = distance_traveled;
-  //       if (fabs(current_light_val - previous_light_val) >= scared_light_thresh) {
-  //         state = SCARED;
-  //         timer_start = current_time;
-  //         turn_SMA_on();
-  //         flashLEDs();
-  //       }
-  //       else if (timer_counter > timer_thresh) {
-  //         state = AMBIENT;
-  //       }
-  //       else if (distance_traveled > turn_thresh) {
-  //         state = TOUCH;
-  //         turn_SMA_on();
-  //       }
-  //       else {
-  //         kobukiDriveDirect(5, 0);
-  //         turn_SMA_on();
-  //       }
-  //       break; // each case needs to end with break!
-  //     }
+      case ATTENTION: {
+        //
+        timer_counter = current_time - timer_start;
+        uint16_t curr_encoder = sensors.leftWheelEncoder;
+        float value = measure_distance(curr_encoder, last_encoder);
+        distance_traveled += value;
+        last_encoder = curr_encoder;
+        facing motion = distance_traveled;
+        if (fabs(current_light_val - previous_light_val) >= scared_light_thresh) {
+          state = SCARED;
+          timer_start = current_time;
+          turn_SMA_on();
+          flashLEDs((current_time - timer_start));
+        }
+        else if (timer_counter > timer_thresh) {
+          state = AMBIENT;
+        }
+        else if (distance_traveled > turn_thresh) {
+          state = TOUCH;
+          turn_SMA_on();
+        }
+        else {
+          kobukiDriveDirect(20, 0);
+          turn_SMA_on();
+        }
+        break; // each case needs to end with break!
+      }
 
-  //     case TOUCH: {
-  //       timer_counter = current_time - timer_start;
-  //       if (fabs(current_light_val - previous_light_val) >= scared_light_thresh) {
-  //         state = SCARED;
-  //         timer_start = current_time;
-  //         turn_SMA_on();
-  //         flashLEDs();
-  //       }
-  //       else if (timer_counter > timer_thresh) {
-  //         state = AMBIENT;
-  //       }
-  //       else {
-  //         turn_SMA_on();
-  //       }
-  //       break; // each case needs to end with break!
-  //     }
+      case TOUCH: {
+        timer_counter = current_time - timer_start;
+        if (fabs(current_light_val - previous_light_val) >= scared_light_thresh) {
+          state = SCARED;
+          timer_start = current_time;
+          turn_SMA_on();
+          flashLEDs((current_time - timer_start));
+        }
+        else if (timer_counter > timer_thresh) {
+          state = AMBIENT;
+        }
+        else {
+          turn_SMA_on();
+        }
+        break; // each case needs to end with break!
+      }
 
-  //     case SCARED: {
-  //       // transition logic
-  //       timer_counter = current_time - timer_start;
-  //       if (timer_counter > timer_scared_thresh) {
-  //         state = AMBIENT;
-  //       }
-  //       else {
-  //         flashLEDs();
-  //         turn_SMA_on();
-  //       }
-  //       break; // each case needs to end with break!
-  //     }
-  //   }
+      case SCARED: {
+        // transition logic
+        timer_counter = current_time - timer_start;
+        if (timer_counter > timer_scared_thresh) {
+          state = AMBIENT;
+        }
+        else {
+          flashLEDs((current_time - timer_start));
+          turn_SMA_on();
+        }
+        break; // each case needs to end with break!
+      }
+    }
 
-  // }
+  }
 }
 
 
@@ -239,23 +258,54 @@ int main(void) {
   printf("All sensors initialized!\n");
   virtual_timer_init();
 
-
+    previous_light = current_light;
+    previous_light1_val = previous_light.light1;
+    previous_light2_val = previous_light.light2;
+    previous_light3_val = previous_light.light3;
+    previous_light4_val = previous_light.light4;
+    current_light = read_light_sensors();
+    current_light1_val = current_light.light1;
+    current_light2_val = current_light.light2;
+    current_light3_val = current_light.light3;
+    current_light4_val = current_light.light4;
+    previous_light_val = (previous_light1_val + previous_light2_val + previous_light3_val + previous_light4_val)/4;
+    current_light_val = (current_light1_val + current_light2_val + current_light3_val + current_light4_val)/4;
+    ambient_light = (current_light_val - MIN_LIGHT) * SCALER;
+    set_LED_color(255/ambient_light, 244/ambient_light, 229/ambient_light);
   LEDS_ON();
 
-  uint32_t r = 0;
-  uint32_t g = 0;
-  uint32_t b = 0;
+  //uint32_t r = 0;
+  //uint32_t g = 0;
+  //uint32_t b = 0;
 
-  bool redup = true;
-  bool greenup = true;
-  bool blueup = true;
+  //bool redup = true;
+  //bool greenup = true;
+  //bool blueup = true;
 
   // loop forever
   while (1) {
     kobukiSensorPoll(&sensors);
-    kobukiDriveDirect(20,20);
-
+    previous_time = current_time;
+    current_time = read_timer();
+    previous_light = current_light;
+    previous_light1_val = previous_light.light1;
+    previous_light2_val = previous_light.light2;
+    previous_light3_val = previous_light.light3;
+    previous_light4_val = previous_light.light4;
+    current_light = read_light_sensors();
+    current_light1_val = current_light.light1;
+    current_light2_val = current_light.light2;
+    current_light3_val = current_light.light3;
+    current_light4_val = current_light.light4;
+    previous_light_val = (previous_light1_val + previous_light2_val + previous_light3_val + previous_light4_val)/4;
+    current_light_val = (current_light1_val + current_light2_val + current_light3_val + current_light4_val)/4;
+    ambient_light = (current_light_val - MIN_LIGHT) * SCALER;
+    printf("The current ambient light is: %d \n", ambient_light);
+    set_LED_color(255/ambient_light, 244/ambient_light, 229/ambient_light);
+    motion_yn = read_motion_sensor();
+    touch_state = read_touch_sensors();
     nrf_delay_ms(1);
+    kobukiDriveDirect(20,0);
     // printf("************loop\n");
     // light_values_t light_values = read_light_sensors();
     // printf("Light Values: %d, %d, %d, %d\n", light_values.light1, light_values.light2, light_values.light3, light_values.light4);

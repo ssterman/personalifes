@@ -32,6 +32,11 @@
 #define LED_G_PIN  19
 #define LED_B_PIN  20
 
+//light sensors
+#define MAX_LIGHT 30000
+#define MIN_LIGHT 10
+#define SCALER (255/(MAX_LIGHT-MIN_LIGHT))
+
 typedef struct {
 	int16_t light1;
 	int16_t light2;
@@ -89,7 +94,7 @@ void turn_SMA_off();
 
 void set_LED_color(uint32_t r, uint32_t g, uint32_t b);
 
-void flashLEDs();
+void flashLEDs(uint32_t time_diff);
 
 void LEDS_ON();
 
