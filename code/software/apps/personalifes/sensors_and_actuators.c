@@ -157,7 +157,7 @@ light_values_t read_light_sensors() {
 	lights.light2 = lsrd.result_1_2 >> 16;
 	lights.light3 = lsrd.result_3_4 << 16 >> 16;
 	lights.light4 = lsrd.result_3_4 >> 16;
-	
+
 	return lights;
 }
 
@@ -209,10 +209,10 @@ void LEDS_OFF() {
 void flashLEDs(uint32_t time_diff){
 	//write flash LEDs order
 	if (((time_diff / 1000000)) % 2 == 1) {
-		set_LED_color(255, 99, 77)
+		set_LED_color(255, 99, 77);
 	}
 	else {
-		set_LED_color(0, 0, 255)
+		set_LED_color(0, 0, 255);
 	}
 }
 
