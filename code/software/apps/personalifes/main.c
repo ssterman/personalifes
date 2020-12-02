@@ -322,7 +322,7 @@ int main(void) {
     touch_state = (!touch_struct.touch0 || !touch_struct.touch1 || !touch_struct.touch2 || !touch_struct.touch4);
     printf("is there touch %d \n", touch_state);
     nrf_delay_ms(1);
-    kobukiDriveDirect(0,20);
+    kobukiDriveDirect(0,30);
     // printf("************loop\n");
     // light_values_t light_values = read_light_sensors();
     // printf("Light Values: %d, %d, %d, %d\n", light_values.light1, light_values.light2, light_values.light3, light_values.light4);
