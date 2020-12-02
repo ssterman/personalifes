@@ -290,23 +290,24 @@ int main(void) {
 
   // loop forever
   while (1) {
-    //current_light = read_light_sensors();
-    //kobukiSensorPoll(&sensors);
-    // previous_time = current_time;
-    // current_time = read_timer();
-    // previous_light = current_light;
-    // previous_light1_val = previous_light.light1;
-    // previous_light2_val = previous_light.light2;
-    // previous_light3_val = previous_light.light3;
-    // previous_light4_val = previous_light.light4;
-    // current_light1_val = current_light.light1;
-    // current_light2_val = current_light.light2;
-    // current_light3_val = current_light.light3;
-    // current_light4_val = current_light.light4;
-    // previous_light_val = (previous_light1_val + previous_light2_val + previous_light3_val + previous_light4_val)/4;
-    // current_light_val = (current_light1_val + current_light2_val + current_light3_val + current_light4_val)/4;
-    // ambient_light = (current_light_val - MIN_LIGHT) * SCALER;
-    // printf("The current ambient light is: %d \n", ambient_light);
+    current_light = read_light_sensors();
+    kobukiSensorPoll(&sensors);
+    previous_time = current_time;
+    current_time = read_timer();
+    printf("current time is: %d \n", current_time);
+    previous_light = current_light;
+    previous_light1_val = previous_light.light1;
+    previous_light2_val = previous_light.light2;
+    previous_light3_val = previous_light.light3;
+    previous_light4_val = previous_light.light4;
+    current_light1_val = current_light.light1;
+    current_light2_val = current_light.light2;
+    current_light3_val = current_light.light3;
+    current_light4_val = current_light.light4;
+    previous_light_val = (previous_light1_val + previous_light2_val + previous_light3_val + previous_light4_val)/4;
+    current_light_val = (current_light1_val + current_light2_val + current_light3_val + current_light4_val)/4;
+    ambient_light = (current_light_val - MIN_LIGHT) * SCALER;
+    printf("The current ambient light is: %d \n", current_light_val);
     // set_LED_color(255/ambient_light, 244/ambient_light, 229/ambient_light);
     // motion_yn = read_motion_sensor();
     // touch_struct = read_touch_sensors();
