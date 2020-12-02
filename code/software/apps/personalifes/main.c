@@ -274,7 +274,7 @@ int main(void) {
     // current_light_val = (current_light1_val + current_light2_val + current_light3_val + current_light4_val)/4;
     // ambient_light = (current_light_val - MIN_LIGHT) * SCALER;
     r = 255;
-    g = 150;
+    g = 70;
     b = 76;
     set_LED_color(r, g, b);
     LEDS_ON();
