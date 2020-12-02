@@ -46,12 +46,13 @@ typedef enum {
 
 light_values_t current_light, previous_light;
 // put into a separate file 
-uint16_t scared_light_thresh = ;
+uint16_t scared_light_thresh = (MAX_LIGHT - MIN_LIGHT)/2;
 uint16_t previous_light1_val, previous_light2_val, previous_light3_val, previous_light4_val;
 uint16_t current_light1_val, current_light2_val, current_light3_val, current_light4_val;
 uint32_t current_light_val, previous_light_val, ambient_light;
 // calculate turn_thresh for 180 degrees
-uint32_t timer_thresh = 15000000, turn_thresh = , timer_scared_thresh = 15000000, average_light;
+uint32_t timer_thresh = 15000000, timer_scared_thresh = 15000000, average_light;
+float turn_thresh = 0.111125;
 uint8_t r, b, g;
 bool motion_yn, facing_motion, touch_state;
 touch_values_t touch_struct;
@@ -149,7 +150,7 @@ void state_machine() {
         float value = measure_distance(curr_encoder, last_encoder);
         distance_traveled += value;
         last_encoder = curr_encoder;
-        facing motion = distance_traveled;
+        facing_motion = distance_traveled;
         if (fabs(current_light_val - previous_light_val) >= scared_light_thresh) {
           state = SCARED;
           timer_start = current_time;
@@ -303,7 +304,8 @@ int main(void) {
     printf("The current ambient light is: %d \n", ambient_light);
     set_LED_color(255/ambient_light, 244/ambient_light, 229/ambient_light);
     motion_yn = read_motion_sensor();
-    touch_state = read_touch_sensors();
+    touch_struct = read_touch_sensors();
+    touch_state = (touch_struct.touch0 || touch_struct.touch1 || touch_struct.touch2 || touch_struct.touch3 || touch_struct.touch4);
     nrf_delay_ms(1);
     kobukiDriveDirect(20,0);
     // printf("************loop\n");
