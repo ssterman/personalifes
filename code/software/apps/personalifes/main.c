@@ -307,7 +307,7 @@ int main(void) {
     previous_light_val = (previous_light1_val + previous_light2_val + previous_light3_val + previous_light4_val)/4;
     current_light_val = (current_light1_val + current_light2_val + current_light3_val + current_light4_val)/4;
     ambient_light = (current_light_val - MIN_LIGHT) * SCALER;
-    printf("The current ambient light is: %d \n", current_light_val);
+    printf("The current ambient light is: %d \n", ambient_light);
     set_LED_color(255-ambient_light, 244-ambient_light, 229-ambient_light);
     printf("The set light is r = %d, g = %d, b = %d \n", 255-ambient_light, 244-ambient_light, 229-ambient_light);
     motion_yn = read_motion_sensor();
