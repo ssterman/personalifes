@@ -306,6 +306,9 @@ int main(void) {
     current_light4_val = current_light.light4;
     previous_light_val = (previous_light1_val + previous_light2_val + previous_light3_val + previous_light4_val)/4;
     current_light_val = (current_light1_val + current_light2_val + current_light3_val + current_light4_val)/4;
+    printf("Currnt light is %d \n", current_light_val);
+    printf("Current scalar is: %d\n", SCALER);
+    printf("current min light is: %d\n", MIN_LIGHT);
     ambient_light = (current_light_val - MIN_LIGHT) * SCALER;
     printf("The current ambient light is: %d \n", ambient_light);
     set_LED_color(255-ambient_light, 244-ambient_light, 229-ambient_light);
