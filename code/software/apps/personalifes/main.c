@@ -313,7 +313,7 @@ int main(void) {
     printf("The current ambient light is: %d \n", ambient_light);
     r = 255 - ambient_light;
     g = 244 - ambient_light;
-    b = 299 - ambient_light
+    b = 299 - ambient_light;
     set_LED_color(r, g, b);
     printf("The set light is r = %d, g = %d, b = %d \n", r, g, b);
     motion_yn = read_motion_sensor();
