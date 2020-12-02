@@ -294,7 +294,7 @@ int main(void) {
     kobukiSensorPoll(&sensors);
     previous_time = current_time;
     current_time = read_timer();
-    printf("current time is: %d \n", current_time);
+    //printf("current time is: %d \n", current_time);
     previous_light = current_light;
     previous_light1_val = previous_light.light1;
     previous_light2_val = previous_light.light2;
@@ -308,10 +308,13 @@ int main(void) {
     current_light_val = (current_light1_val + current_light2_val + current_light3_val + current_light4_val)/4;
     ambient_light = (current_light_val - MIN_LIGHT) * SCALER;
     printf("The current ambient light is: %d \n", current_light_val);
-    // set_LED_color(255/ambient_light, 244/ambient_light, 229/ambient_light);
-    // motion_yn = read_motion_sensor();
-    // touch_struct = read_touch_sensors();
-    // touch_state = (touch_struct.touch0 || touch_struct.touch1 || touch_struct.touch2 || touch_struct.touch3 || touch_struct.touch4);
+    set_LED_color(255/ambient_light, 244/ambient_light, 229/ambient_light);
+    printf("The set light is r = %d, g = %d, b = %d \n", 255/ambient_light, 244/ambient_light, 229/ambient_light);
+    motion_yn = read_motion_sensor();
+    printf("is there motion %d \n", motion_yn);
+    touch_struct = read_touch_sensors();
+    touch_state = (touch_struct.touch0 || touch_struct.touch1 || touch_struct.touch2 || touch_struct.touch3 || touch_struct.touch4);
+    printf("is there touch %d \n", touch_state);
     nrf_delay_ms(1);
     //kobukiDriveDirect(20,0);
     // printf("************loop\n");

@@ -33,7 +33,7 @@
 #define LED_B_PIN  20
 
 //light sensors
-#define MAX_LIGHT 30000
+#define MAX_LIGHT 150
 #define MIN_LIGHT 10
 #define SCALER (255/(MAX_LIGHT-MIN_LIGHT))
 
