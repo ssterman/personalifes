@@ -273,9 +273,12 @@ int main(void) {
     // previous_light_val = (previous_light1_val + previous_light2_val + previous_light3_val + previous_light4_val)/4;
     // current_light_val = (current_light1_val + current_light2_val + current_light3_val + current_light4_val)/4;
     // ambient_light = (current_light_val - MIN_LIGHT) * SCALER;
-    set_LED_color(255, 244, 229);
+    r = 255;
+    g = 183;
+    b = 76;
+    set_LED_color(r, g, b);
     LEDS_ON();
-    printf("Light Values: %d, %d, %d\n", 255, 244, 229);
+    printf("Light Values: %d, %d, %d\n", r, g, b);
 
   //uint32_t r = 0;
   //uint32_t g = 0;
