@@ -313,7 +313,7 @@ int main(void) {
     motion_yn = read_motion_sensor();
     printf("is there motion %d \n", motion_yn);
     touch_struct = read_touch_sensors();
-    touch_state = (touch_struct.touch0 || touch_struct.touch1 || touch_struct.touch2 || touch_struct.touch4);
+    touch_state = (!touch_struct.touch0 || !touch_struct.touch1 || !touch_struct.touch2 || !touch_struct.touch4);
     printf("is there touch %d \n", touch_state);
     nrf_delay_ms(1);
     //kobukiDriveDirect(20,0);
