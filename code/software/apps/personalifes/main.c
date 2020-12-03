@@ -206,6 +206,13 @@ void state_machine() {
   }
 }
 
+int boundInt(int i, int low, int high) {
+    int result;
+    result = i > high ? high : i;
+    result = result < low ? low : result;
+    return i;
+}
+
 
 int main(void) {
   ret_code_t error_code = NRF_SUCCESS;
@@ -309,13 +316,20 @@ int main(void) {
     previous_light_val = (previous_light1_val + previous_light2_val + previous_light3_val + previous_light4_val)/4;
     current_light_val = (current_light1_val + current_light2_val + current_light3_val + current_light4_val)/4;
     printf("Currnt light is %d \n", current_light_val);
-    printf("Current scalar is: %d\n", SCALER);
-    printf("current min light is: %d\n", MIN_LIGHT);
-    ambient_light = (current_light_val - MIN_LIGHT) * SCALER;
-    printf("The current ambient light is: %d \n", ambient_light);
-    r = 255 - ambient_light;
-    g = 244 - ambient_light;
-    b = 299 - ambient_light;
+    current_light_val = boundInt(current_light_val, 1, 255);
+    // printf("Current scalar is: %d\n", SCALER);
+    // printf("current min light is: %d\n", MIN_LIGHT);
+    // ambient_light = (current_light_val - MIN_LIGHT) * SCALER;
+    // printf("The current ambient light is: %d \n", ambient_light);
+    float scaler = 1 - (float) current_light_val / 255.0;
+    r = 155 * scaler; //- ambient_light;
+    g = 40 * scaler; //- ambient_light;
+    b = 10 * scaler;
+
+    r = boundInt(r, 0, 255);
+    g = boundInt(g, 0, 255);
+    b = boundInt(b, 0, 255);
+
     set_LED_color(r, g, b);
     LEDS_ON();
 
