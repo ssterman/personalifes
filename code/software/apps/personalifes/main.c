@@ -290,10 +290,12 @@ int main(void) {
 
   // loop forever
   while (1) {
+    printf("\n\n");
     current_light = read_light_sensors();
-    kobukiSensorPoll(&sensors);
+    // kobukiSensorPoll(&sensors);
     previous_time = current_time;
     current_time = read_timer();
+
     //printf("current time is: %d \n", current_time);
     previous_light = current_light;
     previous_light1_val = previous_light.light1;
@@ -315,14 +317,23 @@ int main(void) {
     g = 244 - ambient_light;
     b = 299 - ambient_light;
     set_LED_color(r, g, b);
+    LEDS_ON();
+
     printf("The set light is r = %d, g = %d, b = %d \n", r, g, b);
     motion_yn = read_motion_sensor();
     printf("is there motion %d \n", motion_yn);
     touch_struct = read_touch_sensors();
     touch_state = (!touch_struct.touch0 || !touch_struct.touch1 || !touch_struct.touch2 || !touch_struct.touch4);
     printf("is there touch %d \n", touch_state);
-    nrf_delay_ms(1);
-    kobukiDriveDirect(0,30);
+    printf("touch: %d, %d, %d, %d, %d\n", touch_struct.touch0, touch_struct.touch1, touch_struct.touch2, touch_struct.touch3, touch_struct.touch4);
+    nrf_delay_ms(100);
+    
+    kobukiDriveDirect(0,0);
+
+
+
+
+
     // printf("************loop\n");
     // light_values_t light_values = read_light_sensors();
     // printf("Light Values: %d, %d, %d, %d\n", light_values.light1, light_values.light2, light_values.light3, light_values.light4);

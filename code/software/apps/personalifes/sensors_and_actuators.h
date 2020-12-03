@@ -17,7 +17,7 @@
 #define TOUCH0_PIN  12
 #define	TOUCH1_PIN  13
 #define	TOUCH2_PIN  14
-#define	TOUCH3_PIN  15
+#define	TOUCH3_PIN  17
 #define	TOUCH4_PIN  16
 
 // Motor uses Pin 6 and Pin 8 for UART commands to the robot
