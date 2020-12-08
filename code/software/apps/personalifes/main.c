@@ -153,17 +153,17 @@ void state_machine() {
         distance_traveled += value;
         last_encoder = curr_encoder;
         //facing_motion = distance_traveled;
-        if (abs(current_light_avg - previous_light_avg) >= scared_light_thresh) {
-          printf("ATTENTION --> SCARED \n");
-          state = SCARED;
-          timer_start = current_time;
-          flashLEDs((current_time - timer_start));
-        }
-        else if (timer_counter > timer_thresh) {
-          printf("ATTENTION --> AMBIENT \n");
-          state = AMBIENT;
-        }
-        else if (distance_traveled > turn_thresh) {
+        // if (abs(current_light_avg - previous_light_avg) >= scared_light_thresh) {
+        //   printf("ATTENTION --> SCARED \n");
+        //   state = SCARED;
+        //   timer_start = current_time;
+        //   flashLEDs((current_time - timer_start));
+        // }
+        // else if (timer_counter > timer_thresh) {
+        //   printf("ATTENTION --> AMBIENT \n");
+        //   state = AMBIENT;
+        // }
+        if (distance_traveled > turn_thresh) {
           printf("ATTENTION --> TOUCH \n");
           state = TOUCH;
         }
