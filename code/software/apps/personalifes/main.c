@@ -44,16 +44,16 @@ light_values_t current_light, previous_light;
 uint16_t scared_light_thresh = (MAX_LIGHT - MIN_LIGHT)/2;
 uint32_t current_light_avg, previous_light_avg, ambient_light;
 // calculate turn_thresh for 180 degrees
-uint32_t timer_thresh = 15000000, timer_scared_thresh = 15000000, average_light;
+uint32_t timer_thresh = 1500000, timer_scared_thresh = 15000000, average_light;
 float turn_thresh = 0.111125;
 uint8_t r, b, g;
 bool motion_yn, facing_motion, touch_state;
 touch_values_t touch_struct;
 uint32_t current_time, previous_time, timer_start, timer_counter;
 uint8_t touch_index = 0;
-uint8_t touch_threshold = 4;
-uint8_t touch_length = 5;
-uint8_t touch_buffer[5] = {0, 0, 0, 0, 0};
+uint8_t touch_threshold = 25;
+uint8_t touch_length = 25;
+uint8_t touch_buffer[25] = {0};
 
 static float measure_distance(uint16_t current_encoder,
                               uint16_t previous_encoder) {
@@ -81,6 +81,13 @@ static float distance_traveled = 0.0;
 static KobukiSensors_t sensors = {0};
 static flower_state_t state = AMBIENT;
 
+uint8_t sumTouchBuffer() {
+  uint8_t sum = 0;
+  for (uint8_t i = 0; i < touch_length; i++) {
+    sum = sum + touch_buffer[i];
+  }
+  return sum;
+}
 
 void state_machine() {
    while (1) {
@@ -96,9 +103,15 @@ void state_machine() {
     motion_yn = read_motion_sensor();
     touch_struct = read_touch_sensors();
     // touch_state = (!touch_struct.touch1 || !touch_struct.touch3); // || touch_struct.touch2 || touch_struct.touch3 || touch_struct.touch4);
-    touch_buffer[touch_index] = !touch_struct.touch1 || !touch_struct.touch3 ? 1 : 0;
-    touch_state = (touch_buffer[0] + touch_buffer[1] + touch_buffer[2] + touch_buffer[3] + touch_buffer[4]) > touch_threshold;
+    touch_buffer[touch_index] = 1;
+
+    //if it ever reads 0, clear the whole thing
+    if (touch_struct.touch1 && touch_struct.touch3) {
+        memset(touch_buffer, 0, sizeof(touch_buffer));
+    }
+    touch_state = sumTouchBuffer() >= touch_threshold;
     touch_index = (touch_index + 1) % touch_length;
+    printf("touch buffer: %d, %d, %d, %d, %d \n", touch_buffer[0], touch_buffer[1], touch_buffer[2], touch_buffer[3], touch_buffer[4]);
     nrf_delay_ms(1);
 
     printf("current, prev, thresh: %d, %d, %d, %d \n ", current_light_avg, previous_light_avg, abs(current_light_avg - previous_light_avg), scared_light_thresh);
