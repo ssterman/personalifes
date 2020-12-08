@@ -50,6 +50,10 @@ uint8_t r, b, g;
 bool motion_yn, facing_motion, touch_state;
 touch_values_t touch_struct;
 uint32_t current_time, previous_time, timer_start, timer_counter;
+uint8_t touch_index = 0;
+uint8_t touch_threshold = 4;
+uint8_t touch_length = 5;
+uint8_t touch_buffer[5] = {0, 0, 0, 0, 0};
 
 static float measure_distance(uint16_t current_encoder,
                               uint16_t previous_encoder) {
@@ -91,10 +95,11 @@ void state_machine() {
     current_light_avg = (current_light.light1 + current_light.light2 + current_light.light3 + current_light.light4)/4;
     motion_yn = read_motion_sensor();
     touch_struct = read_touch_sensors();
-    touch_state = (!touch_struct.touch1 || !touch_struct.touch3); // || touch_struct.touch2 || touch_struct.touch3 || touch_struct.touch4);
+    // touch_state = (!touch_struct.touch1 || !touch_struct.touch3); // || touch_struct.touch2 || touch_struct.touch3 || touch_struct.touch4);
+    touch_buffer[touch_index] = !touch_struct.touch1 || !touch_struct.touch3 ? 1 : 0;
+    touch_state = (touch_buffer[0] + touch_buffer[1] + touch_buffer[2] + touch_buffer[3] + touch_buffer[4]) > touch_threshold;
+    touch_index = (touch_index + 1) % touch_length;
     nrf_delay_ms(1);
-
-    touch_state = false;
 
     printf("current, prev, thresh: %d, %d, %d, %d \n ", current_light_avg, previous_light_avg, abs(current_light_avg - previous_light_avg), scared_light_thresh);
     printf("touched? %d \n", touch_state);
