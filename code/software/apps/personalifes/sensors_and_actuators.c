@@ -177,11 +177,15 @@ touch_values_t read_touch_sensors(){
 
 
 void turn_SMA_on(){
-	gpio_set(SMA_PIN);
+	// gpio_set(SMA_PIN);
+
+	pwm_start(0);
+
 }
 
 void turn_SMA_off(){
-	gpio_clear(SMA_PIN);
+	// gpio_clear(SMA_PIN);
+	pwm_stop(0);
 }
 
 void set_LED_color(uint32_t r, uint32_t g, uint32_t b){
@@ -193,7 +197,7 @@ void set_LED_color(uint32_t r, uint32_t g, uint32_t b){
 	pwm_seq.duty_cycle_0_1 = r + (g << 16); 
 	pwm_seq.duty_cycle_2_3 = b; 
 
-	printf("pwmduty: %u \n", pwm_seq.duty_cycle_0_1);
+	// printf("pwmduty: %u \n", pwm_seq.duty_cycle_0_1);
 	// pwm_seq.duty_cycle_2 = b;
 } 
 
@@ -210,9 +214,11 @@ void flashLEDs(uint32_t time_diff){
 	//write flash LEDs order
 	if (((time_diff / 1000000)) % 2 == 1) {
 		set_LED_color(255, 99, 77);
+		LEDS_ON();
 	}
 	else {
 		set_LED_color(0, 0, 255);
+		LEDS_ON();
 	}
 }
 

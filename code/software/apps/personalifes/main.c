@@ -26,17 +26,11 @@
 
 //driver for kobuki
 #include "buckler.h"
-// #include "display.h"
 #include "kobukiActuator.h"
 #include "kobukiSensorPoll.h"
 #include "kobukiSensorTypes.h"
 #include "kobukiUtilities.h"
-// #include "lsm9ds1.h"
 
-
-
-// I2C manager
-// NRF_TWI_MNGR_DEF(twi_mngr_instance, 5, 0);
 
 typedef enum {
   AMBIENT,
@@ -48,9 +42,7 @@ typedef enum {
 light_values_t current_light, previous_light;
 // put into a separate file 
 uint16_t scared_light_thresh = (MAX_LIGHT - MIN_LIGHT)/2;
-uint16_t previous_light1_val, previous_light2_val, previous_light3_val, previous_light4_val;
-uint16_t current_light1_val, current_light2_val, current_light3_val, current_light4_val;
-uint32_t current_light_val, previous_light_val, ambient_light;
+uint32_t current_light_avg, previous_light_avg, ambient_light;
 // calculate turn_thresh for 180 degrees
 uint32_t timer_thresh = 15000000, timer_scared_thresh = 15000000, average_light;
 float turn_thresh = 0.111125;
@@ -88,58 +80,66 @@ static flower_state_t state = AMBIENT;
 
 void state_machine() {
    while (1) {
+    printf("\n\n");
     kobukiSensorPoll(&sensors);
+    printf("sensors: %d, %d \n", sensors.rightWheelEncoder, sensors.leftWheelEncoder);
     previous_time = current_time;
     current_time = read_timer();
     previous_light = current_light;
-    previous_light1_val = previous_light.light1;
-    previous_light2_val = previous_light.light2;
-    previous_light3_val = previous_light.light3;
-    previous_light4_val = previous_light.light4;
     current_light = read_light_sensors();
-    current_light1_val = current_light.light1;
-    current_light2_val = current_light.light2;
-    current_light3_val = current_light.light3;
-    current_light4_val = current_light.light4;
-    previous_light_val = (previous_light1_val + previous_light2_val + previous_light3_val + previous_light4_val)/4;
-    current_light_val = (current_light1_val + current_light2_val + current_light3_val + current_light4_val)/4;
+    previous_light_avg = (previous_light.light1 + previous_light.light2 + previous_light.light3 + previous_light.light4)/4;
+    current_light_avg = (current_light.light1 + current_light.light2 + current_light.light3 + current_light.light4)/4;
     motion_yn = read_motion_sensor();
     touch_struct = read_touch_sensors();
-    touch_state = (touch_struct.touch0 || touch_struct.touch1 || touch_struct.touch2 || touch_struct.touch3 || touch_struct.touch4);
+    touch_state = (!touch_struct.touch1 || !touch_struct.touch3); // || touch_struct.touch2 || touch_struct.touch3 || touch_struct.touch4);
     nrf_delay_ms(1);
+
+    touch_state = false;
+
+    printf("current, prev, thresh: %d, %d, %d, %d \n ", current_light_avg, previous_light_avg, abs(current_light_avg - previous_light_avg), scared_light_thresh);
+    printf("touched? %d \n", touch_state);
 
     switch(state) {
       case AMBIENT: {
         //set LEDs based on ambient light
         // transition logic
         if (touch_state) {
+          printf("AMBIENT --> TOUCH\n");
           state = TOUCH;
           timer_start = current_time;
-          turn_SMA_on();
         }
         else if (motion_yn) {
+          printf("AMBIENT --> MOTION \n");
           state = ATTENTION;
-          last_encoder = sensors.leftWheelEncoder;
+          last_encoder = sensors.rightWheelEncoder;
           distance_traveled = 0.0;
           timer_start = current_time;
           // to turn, need to operate at 20
-          kobukiDriveDirect(20, 0);
-          turn_SMA_on();
+          kobukiDriveDirect(0, 20);
         }
         // average the 4 light sensors 
-        else if (fabs(current_light_val - previous_light_val) >= scared_light_thresh) {
+        else if (abs(current_light_avg - previous_light_avg) >= scared_light_thresh) {
+          printf("AMBIENT --> SCARED \n");
           state = SCARED;
           timer_start = current_time;
           flashLEDs((current_time - timer_start));
-          turn_SMA_on();
         }
         else {
-          // just scale down numbers up or down based on ambient light
-          ambient_light = (current_light_val - MIN_LIGHT) * SCALER;
-          r = 255/ambient_light;
-          g = 244/ambient_light;
-          b = 229/ambient_light;
+          printf("AMBIENT STATE\n");
+
+          float scaler = 1 - (float) current_light_avg / 255.0;
+          r = 155 * scaler; //- ambient_light;
+          g = 40 * scaler; //- ambient_light;
+          b = 10 * scaler;
+
+          r = boundInt(r, 0, 255);
+          g = boundInt(g, 0, 255);
+          b = boundInt(b, 0, 255);
+
           set_LED_color(r, g, b);
+          LEDS_ON();
+          kobukiDriveDirect(0, 0);
+
         }
         break; // each case needs to end with break!
       }
@@ -147,44 +147,49 @@ void state_machine() {
       case ATTENTION: {
         //
         timer_counter = current_time - timer_start;
-        uint16_t curr_encoder = sensors.leftWheelEncoder;
+        uint16_t curr_encoder = sensors.rightWheelEncoder;
         float value = measure_distance(curr_encoder, last_encoder);
+        printf("value, %d, %f \n", curr_encoder, value);
         distance_traveled += value;
         last_encoder = curr_encoder;
         //facing_motion = distance_traveled;
-        if (fabs(current_light_val - previous_light_val) >= scared_light_thresh) {
+        if (abs(current_light_avg - previous_light_avg) >= scared_light_thresh) {
+          printf("ATTENTION --> SCARED \n");
           state = SCARED;
           timer_start = current_time;
-          turn_SMA_on();
           flashLEDs((current_time - timer_start));
         }
         else if (timer_counter > timer_thresh) {
+          printf("ATTENTION --> AMBIENT \n");
           state = AMBIENT;
         }
         else if (distance_traveled > turn_thresh) {
+          printf("ATTENTION --> TOUCH \n");
           state = TOUCH;
-          turn_SMA_on();
         }
         else {
-          kobukiDriveDirect(20, 0);
-          turn_SMA_on();
+          printf("ATTENTION STATE\n");
+          kobukiDriveDirect(0, 20);
+          printf("     distance_traveled, %f, %f\n", distance_traveled, turn_thresh);
         }
         break; // each case needs to end with break!
       }
 
       case TOUCH: {
         timer_counter = current_time - timer_start;
-        if (fabs(current_light_val - previous_light_val) >= scared_light_thresh) {
+        if (abs(current_light_avg - previous_light_avg) >= scared_light_thresh) {
+          printf("TOUCH --> SCARED \n");
           state = SCARED;
           timer_start = current_time;
-          turn_SMA_on();
           flashLEDs((current_time - timer_start));
         }
         else if (timer_counter > timer_thresh) {
+          printf("TOUCH --> AMBIENT \n");
           state = AMBIENT;
         }
         else {
-          turn_SMA_on();
+          printf("TOUCH STATE \n");
+          kobukiDriveDirect(0, 0);
         }
         break; // each case needs to end with break!
       }
@@ -193,11 +198,13 @@ void state_machine() {
         // transition logic
         timer_counter = current_time - timer_start;
         if (timer_counter > timer_scared_thresh) {
+          printf("SCARED --> AMBIENT \n");
           state = AMBIENT;
         }
         else {
+          printf("SCARED STATE \n");
           flashLEDs((current_time - timer_start));
-          turn_SMA_on();
+          kobukiDriveDirect(0, 0);
         }
         break; // each case needs to end with break!
       }
@@ -224,9 +231,9 @@ int main(void) {
   printf("Log initialized!\n");
 
   // initialize LEDs
-  nrf_gpio_pin_dir_set(23, NRF_GPIO_PIN_DIR_OUTPUT);
-  nrf_gpio_pin_dir_set(24, NRF_GPIO_PIN_DIR_OUTPUT);
-  nrf_gpio_pin_dir_set(25, NRF_GPIO_PIN_DIR_OUTPUT);
+  // nrf_gpio_pin_dir_set(23, NRF_GPIO_PIN_DIR_OUTPUT);
+  // nrf_gpio_pin_dir_set(24, NRF_GPIO_PIN_DIR_OUTPUT);
+  // nrf_gpio_pin_dir_set(25, NRF_GPIO_PIN_DIR_OUTPUT);
 
   // initialize display
   nrf_drv_spi_t spi_instance = NRF_DRV_SPI_INSTANCE(1);
@@ -246,16 +253,6 @@ int main(void) {
   APP_ERROR_CHECK(error_code);
 
 
-  // initialize i2c master (two wire interface)
-  // nrf_drv_twi_config_t i2c_config = NRF_DRV_TWI_DEFAULT_CONFIG;
-  // i2c_config.scl = BUCKLER_SENSORS_SCL;
-  // i2c_config.sda = BUCKLER_SENSORS_SDA;
-  // i2c_config.frequency = NRF_TWIM_FREQ_100K;
-  // error_code = nrf_twi_mngr_init(&twi_mngr_instance, &i2c_config);
-  // APP_ERROR_CHECK(error_code);
-  // lsm9ds1_init(&twi_mngr_instance);
-  // printf("IMU initialized!\n");
-
   // initialize sensors
   initialize_motor();
   initialize_touch_sensors();
@@ -267,25 +264,9 @@ int main(void) {
   printf("All sensors initialized!\n");
   virtual_timer_init();
 
-    // current_light = read_light_sensors();
-    // previous_light = current_light;
-    // previous_light1_val = previous_light.light1;
-    // previous_light2_val = previous_light.light2;
-    // previous_light3_val = previous_light.light3;
-    // previous_light4_val = previous_light.light4;
-    // current_light1_val = current_light.light1;
-    // current_light2_val = current_light.light2;
-    // current_light3_val = current_light.light3;
-    // current_light4_val = current_light.light4;
-    // previous_light_val = (previous_light1_val + previous_light2_val + previous_light3_val + previous_light4_val)/4;
-    // current_light_val = (current_light1_val + current_light2_val + current_light3_val + current_light4_val)/4;
-    // ambient_light = (current_light_val - MIN_LIGHT) * SCALER;
-    r = 8;
-    g = 7;
-    b = 3;
-    set_LED_color(r, g, b);
-    LEDS_ON();
-    printf("Light Values: %d, %d, %d\n", r, g, b);
+  current_light = read_light_sensors();
+  previous_light = current_light;
+  state_machine();
 
   //uint32_t r = 0;
   //uint32_t g = 0;
@@ -296,53 +277,43 @@ int main(void) {
   //bool blueup = true;
 
   // loop forever
-  while (1) {
-    printf("\n\n");
-    current_light = read_light_sensors();
+  // while (1) {
+    // printf("\n\n");
+    // current_light = read_light_sensors();
     // kobukiSensorPoll(&sensors);
-    previous_time = current_time;
-    current_time = read_timer();
+    // previous_time = current_time;
+    // current_time = read_timer();
 
-    //printf("current time is: %d \n", current_time);
-    previous_light = current_light;
-    previous_light1_val = previous_light.light1;
-    previous_light2_val = previous_light.light2;
-    previous_light3_val = previous_light.light3;
-    previous_light4_val = previous_light.light4;
-    current_light1_val = current_light.light1;
-    current_light2_val = current_light.light2;
-    current_light3_val = current_light.light3;
-    current_light4_val = current_light.light4;
-    previous_light_val = (previous_light1_val + previous_light2_val + previous_light3_val + previous_light4_val)/4;
-    current_light_val = (current_light1_val + current_light2_val + current_light3_val + current_light4_val)/4;
-    printf("Currnt light is %d \n", current_light_val);
-    current_light_val = boundInt(current_light_val, 1, 255);
-    // printf("Current scalar is: %d\n", SCALER);
-    // printf("current min light is: %d\n", MIN_LIGHT);
-    // ambient_light = (current_light_val - MIN_LIGHT) * SCALER;
-    // printf("The current ambient light is: %d \n", ambient_light);
-    float scaler = 1 - (float) current_light_val / 255.0;
-    r = 155 * scaler; //- ambient_light;
-    g = 40 * scaler; //- ambient_light;
-    b = 10 * scaler;
+    // //printf("current time is: %d \n", current_time);
+    // previous_light = current_light;
+    // previous_light_avg = (previous_light.light1 + previous_light.light2 + previous_light.light3 + previous_light.light4)/4;
+    // current_light_avg = (current_light.light1 + current_light.light2 + current_light.light3 + current_light.light4)/4;
+    // printf("Avg light is %d \n", current_light_avg);
+    // printf("lights: %d, %d, %d, %d \n", current_light.light1, current_light.light2, current_light.light3, current_light.light4);
+    // current_light_avg = boundInt(current_light_avg, 1, 255);
 
-    r = boundInt(r, 0, 255);
-    g = boundInt(g, 0, 255);
-    b = boundInt(b, 0, 255);
+    // float scaler = 1 - (float) current_light_avg / 255.0;
+    // r = 155 * scaler; //- ambient_light;
+    // g = 40 * scaler; //- ambient_light;
+    // b = 10 * scaler;
 
-    set_LED_color(r, g, b);
-    LEDS_ON();
+    // r = boundInt(r, 0, 255);
+    // g = boundInt(g, 0, 255);
+    // b = boundInt(b, 0, 255);
 
-    printf("The set light is r = %d, g = %d, b = %d \n", r, g, b);
-    motion_yn = read_motion_sensor();
-    printf("is there motion %d \n", motion_yn);
-    touch_struct = read_touch_sensors();
-    touch_state = (!touch_struct.touch0 || !touch_struct.touch1 || !touch_struct.touch2 || !touch_struct.touch4);
-    printf("is there touch %d \n", touch_state);
-    printf("touch: %d, %d, %d, %d, %d\n", touch_struct.touch0, touch_struct.touch1, touch_struct.touch2, touch_struct.touch3, touch_struct.touch4);
-    nrf_delay_ms(100);
+    // set_LED_color(r, g, b);
+    // LEDS_ON();
+
+    // printf("The set light is r = %d, g = %d, b = %d \n", r, g, b);
+    // motion_yn = read_motion_sensor();
+    // printf("is there motion %d \n", motion_yn);
+    // touch_struct = read_touch_sensors();
+    // touch_state = (!touch_struct.touch1 || !touch_struct.touch2); //(!touch_struct.touch0 || !touch_struct.touch1 || !touch_struct.touch2 || !touch_struct.touch4);
+    // // printf("is there touch %d \n", touch_state);
+    // printf("touch: %d, %d, %d, %d, %d\n", touch_struct.touch0, touch_struct.touch1, touch_struct.touch2, touch_struct.touch3, touch_struct.touch4);
+    // nrf_delay_ms(100);
     
-    kobukiDriveDirect(0,0);
+    // kobukiDriveDirect(20,20);
 
 
 
@@ -391,6 +362,6 @@ int main(void) {
     // set_LED_color(r, g, b);
     // LEDS_ON();
 
-  }
+  // }
 
 }

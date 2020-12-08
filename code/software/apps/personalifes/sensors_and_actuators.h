@@ -29,8 +29,8 @@
 // PWM module can accept any GPIO pin 0 - 31
 // FOR NOW, assuming that all LEDs are the same colors
 #define LED_R_PIN  18
-#define LED_G_PIN  19
-#define LED_B_PIN  20
+#define LED_G_PIN  20
+#define LED_B_PIN  19
 
 //light sensors
 #define MAX_LIGHT 150
