@@ -563,7 +563,7 @@ void state_machine_extended_angry() {
           // to turn, need to operate at 20
           next_direction = 0;
           printf("turning towards motion, towards direction: %d\n", next_direction);
-          facing_motion(current_direction, next_direction);
+          face_motion(current_direction, next_direction);
           printf("done turning towards motion\n");
           current_direction = next_direction;
         }
@@ -745,7 +745,7 @@ void state_machine_extended() {
           // to turn, need to operate at 20
           next_direction = 0;
           printf("turning towards motion, towards direction: %d\n", next_direction);
-          facing_motion(current_direction, next_direction);
+          face_motion(current_direction, next_direction);
           printf("done turning towards motion\n");
           current_direction = next_direction;
         }
