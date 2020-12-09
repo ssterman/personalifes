@@ -38,6 +38,12 @@
 //#define SCALER (255/(MAX_LIGHT-MIN_LIGHT))
 #define SCALER 1.82
 
+//LIGHT SENSOR DIRECTIONS
+#define FRONT 1 // pin 2
+#define RIGHT 2 // pin 3
+#define BACK 3 // pin 4
+#define LEFT 4 // pin 5
+
 typedef struct {
 	int16_t light1;
 	int16_t light2;
