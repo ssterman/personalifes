@@ -93,9 +93,9 @@ uint8_t sumTouchBuffer() {
   return sum;
 }
 
-void face_motion(current_direction, next_direction) {
-  if (current_direction != next_direction) {
-    uint16_t amount_turn = abs(next_direction - current_direction);
+void face_motion(uint16_t current_direction_var, uint16_t next_direction_var) {
+  if (current_direction_var != next_direction_var) {
+    uint16_t amount_turn = abs(next_direction_var - current_direction_var);
     if (amount_turn > 180) {
       amount_turn = 90;
     }
@@ -114,7 +114,7 @@ void face_motion(current_direction, next_direction) {
       printf("value, %d, %f \n", curr_encoder, value);
       distance_traveled += value;
       last_encoder = curr_encoder;
-      if ((((next_direction<current_direction)<0) && (abs(next_direction-current_direction)<=180)) || (current_direction - next_direction > 180)) {
+      if (((next_direction_var<current_direction_var) && (abs(next_direction_var-current_direction_var)<=180)) || (current_direction_var - next_direction_var > 180)) {
         kobukiDriveDirect(0, -20);
         //turn left
       }
@@ -330,172 +330,7 @@ int boundInt(int i, int low, int high) {
     return i;
 }
 
-
-int main(void) {
-  ret_code_t error_code = NRF_SUCCESS;
-
-  // initialize RTT library
-  error_code = NRF_LOG_INIT(NULL);
-  APP_ERROR_CHECK(error_code);
-  NRF_LOG_DEFAULT_BACKENDS_INIT();
-  printf("Log initialized!\n");
-
-  // initialize LEDs
-  // nrf_gpio_pin_dir_set(23, NRF_GPIO_PIN_DIR_OUTPUT);
-  // nrf_gpio_pin_dir_set(24, NRF_GPIO_PIN_DIR_OUTPUT);
-  // nrf_gpio_pin_dir_set(25, NRF_GPIO_PIN_DIR_OUTPUT);
-
-  // initialize display
-  nrf_drv_spi_t spi_instance = NRF_DRV_SPI_INSTANCE(1);
-  nrf_drv_spi_config_t spi_config = {
-    .sck_pin = BUCKLER_LCD_SCLK,
-    .mosi_pin = BUCKLER_LCD_MOSI,
-    .miso_pin = BUCKLER_LCD_MISO,
-    .ss_pin = BUCKLER_LCD_CS,
-    .irq_priority = NRFX_SPI_DEFAULT_CONFIG_IRQ_PRIORITY,
-    .orc = 0,
-    .frequency = NRF_DRV_SPI_FREQ_4M,
-    .mode = NRF_DRV_SPI_MODE_2,
-    .bit_order = NRF_DRV_SPI_BIT_ORDER_MSB_FIRST
-  };
-
-  error_code = nrf_drv_spi_init(&spi_instance, &spi_config, NULL, NULL);
-  APP_ERROR_CHECK(error_code);
-
-
-  // initialize sensors
-  initialize_motor();
-  initialize_touch_sensors();
-  initialize_light_sensors();
-  initialize_motion_sensor();
-  set_LED_color(190, 0, 90);
-
-  initialize_LED();
-  printf("All sensors initialized!\n");
-  virtual_timer_init();
-
-  current_light = read_light_sensors();
-  previous_light = current_light;
-  srand(current_time);
-  today_mood = rand() % 2;
-  printf("Today's mood is: %d \n", today_mood);
-  //state_machine();
-
-  //uncomment for moods:
-  if (today_mood == 0) {
-    state_machine_extended();
-  }
-  else if (today_mood == 1) {
-    state_machine_extended_angry();
-    //led's red in ambient
-    //turns away from you for motion 
-  }
-  else if (today_mood == 2) {
-    state_machine_extended_sad();
-    //led's blue in ambient
-    //face in direction of least light, only vibrate for motion or touch
-  }
-
-
-  //uint32_t r = 0;
-  //uint32_t g = 0;
-  //uint32_t b = 0;
-
-  //bool redup = true;
-  //bool greenup = true;
-  //bool blueup = true;
-
-  // loop forever
-  // while (1) {
-    // printf("\n\n");
-    // current_light = read_light_sensors();
-    // kobukiSensorPoll(&sensors);
-    // previous_time = current_time;
-    // current_time = read_timer();
-
-    // //printf("current time is: %d \n", current_time);
-    // previous_light = current_light;
-    // previous_light_avg = (previous_light.light1 + previous_light.light2 + previous_light.light3 + previous_light.light4)/4;
-    // current_light_avg = (current_light.light1 + current_light.light2 + current_light.light3 + current_light.light4)/4;
-    // printf("Avg light is %d \n", current_light_avg);
-    // printf("lights: %d, %d, %d, %d \n", current_light.light1, current_light.light2, current_light.light3, current_light.light4);
-    // current_light_avg = boundInt(current_light_avg, 1, 255);
-
-    // float scaler = 1 - (float) current_light_avg / 255.0;
-    // r = 155 * scaler; //- ambient_light;
-    // g = 40 * scaler; //- ambient_light;
-    // b = 10 * scaler;
-
-    // r = boundInt(r, 0, 255);
-    // g = boundInt(g, 0, 255);
-    // b = boundInt(b, 0, 255);
-
-    // set_LED_color(r, g, b);
-    // LEDS_ON();
-
-    // printf("The set light is r = %d, g = %d, b = %d \n", r, g, b);
-    // motion_yn = read_motion_sensor();
-    // printf("is there motion %d \n", motion_yn);
-    // touch_struct = read_touch_sensors();
-    // touch_state = (!touch_struct.touch1 || !touch_struct.touch2); //(!touch_struct.touch0 || !touch_struct.touch1 || !touch_struct.touch2 || !touch_struct.touch4);
-    // // printf("is there touch %d \n", touch_state);
-    // printf("touch: %d, %d, %d, %d, %d\n", touch_struct.touch0, touch_struct.touch1, touch_struct.touch2, touch_struct.touch3, touch_struct.touch4);
-    // nrf_delay_ms(100);
-    
-    // kobukiDriveDirect(20,20);
-
-
-
-
-
-    // printf("************loop\n");
-    // light_values_t light_values = read_light_sensors();
-    // printf("Light Values: %d, %d, %d, %d\n", light_values.light1, light_values.light2, light_values.light3, light_values.light4);
-  
-    // printf("%d, %d %d \n", redup, (!greenup) && (g > 0), blueup);
-
-    // if (redup && r < 255) {
-    //   r = (r + 5);
-    // } else if (redup && r >= 255) {
-    //   redup = false;
-    // } else if ((!redup) && (r > 0)) {
-    //   r = r - 5;
-    // } else {
-    //   redup = true;
-    // }
-
-    // if (greenup && g < 255) {
-    //   g = (g + 10);
-    // } else if (greenup && g >= 255) {
-    //   greenup = false;
-    // } else if ((!greenup) && (g > 0)) {
-    //   g = (g - 10);
-    // } else {
-    //   greenup = true;
-    // }
-
-    // if (blueup && b < 255) {
-    //   b = (b + 15);
-    // } else if (blueup && b >= 255) {
-    //   blueup = false;
-    // } else if ((!blueup) && (b > 0)) {
-    //   b = b - 15;
-    // } else {
-    //   blueup = true;
-    // }
-
-    // printf("rgb %u %u %u \n",r, g, b);
-    // // g = (g + 10) % 255;
-    // // b = (b + 20) % 255;
-
-    // set_LED_color(r, g, b);
-    // LEDS_ON();
-
-  // }
-
-}
-
-void state_machine_extended() {
+void state_machine_extended_sad() {
    while (1) {
     printf("\n\n");
     kobukiSensorPoll(&sensors);
@@ -538,16 +373,17 @@ void state_machine_extended() {
         }
         else if (motion_yn) {
           printf("AMBIENT --> MOTION \n");
-          state = ATTENTION;
+          state = AMBIENT;
           //last_encoder = sensors.rightWheelEncoder;
           //distance_traveled = 0.0;
-          timer_start = current_time;
+          //timer_start = current_time;
+          printf("going to vibrate now\n");
+          vibrate();
+          printf("ended vibration\n");
           // to turn, need to operate at 20
-          next_direction = 0;
-          printf("turning towards motion, towards direction: %d\n", next_direction);
-          facing_motion(current_direction, next_direction);
-          printf("done turning towards motion\n");
-          current_direction = next_direction;
+          //next_direction = 180;
+          //facing_motion(current_direction, next_direction);
+          //current_direction = next_direction;
         }
         // average the 4 light sensors 
         else if (abs(current_light_avg - previous_light_avg) >= scared_light_thresh) {
@@ -560,9 +396,9 @@ void state_machine_extended() {
           printf("AMBIENT STATE\n");
 
           float scaler = 1 - (float) current_light_avg / 255.0;
-          r = 155 * scaler; //- ambient_light;
-          g = 40 * scaler; //- ambient_light;
-          b = 10 * scaler;
+          r = 0 * scaler; //- ambient_light;
+          g = 0 * scaler; //- ambient_light;
+          b = 255 * scaler;
 
           r = boundInt(r, 0, 255);
           g = boundInt(g, 0, 255);
@@ -570,16 +406,16 @@ void state_machine_extended() {
 
           set_LED_color(r, g, b);
           LEDS_ON();
-          if ((current_light.light1 >= current_light.light2) && (current_light.light1 >= current_light.light3) && (current_light.light1 >= current_light.light4)) {
+          if ((current_light.light1 <= current_light.light2) && (current_light.light1 <= current_light.light3) && (current_light.light1 <= current_light.light4)) {
             max_direction = LIGHT0_PIN;
           }
-          else if ((current_light.light2 >= current_light.light1) && (current_light.light2 >= current_light.light3) && (current_light.light2 >= current_light.light4)) {
+          else if ((current_light.light2 <= current_light.light1) && (current_light.light2 <= current_light.light3) && (current_light.light2 <= current_light.light4)) {
             max_direction = LIGHT1_PIN;
           }
-          else if ((current_light.light3 >= current_light.light1) && (current_light.light3 >= current_light.light4) && (current_light.light3 >= current_light.light2)) {
+          else if ((current_light.light3 <= current_light.light1) && (current_light.light3 <= current_light.light4) && (current_light.light3 <= current_light.light2)) {
             max_direction = LIGHT2_PIN;
           }
-          else if ((current_light.light4 >= current_light.light1) && (current_light.light4 >= current_light.light3) && (current_light.light4 >= current_light.light2)) {
+          else if ((current_light.light4 <= current_light.light1) && (current_light.light4 <= current_light.light3) && (current_light.light4 <= current_light.light2)) {
             max_direction = LIGHT3_PIN;
           }
           printf("Max light came from LED %d\n", max_direction);
@@ -859,7 +695,7 @@ void state_machine_extended_angry() {
   }
 }
 
-void state_machine_extended_sad() {
+void state_machine_extended() {
    while (1) {
     printf("\n\n");
     kobukiSensorPoll(&sensors);
@@ -902,17 +738,16 @@ void state_machine_extended_sad() {
         }
         else if (motion_yn) {
           printf("AMBIENT --> MOTION \n");
-          state = AMBIENT;
+          state = ATTENTION;
           //last_encoder = sensors.rightWheelEncoder;
           //distance_traveled = 0.0;
-          //timer_start = current_time;
-          printf("going to vibrate now\n");
-          vibrate();
-          printf("ended vibration\n");
+          timer_start = current_time;
           // to turn, need to operate at 20
-          //next_direction = 180;
-          //facing_motion(current_direction, next_direction);
-          //current_direction = next_direction;
+          next_direction = 0;
+          printf("turning towards motion, towards direction: %d\n", next_direction);
+          facing_motion(current_direction, next_direction);
+          printf("done turning towards motion\n");
+          current_direction = next_direction;
         }
         // average the 4 light sensors 
         else if (abs(current_light_avg - previous_light_avg) >= scared_light_thresh) {
@@ -925,9 +760,9 @@ void state_machine_extended_sad() {
           printf("AMBIENT STATE\n");
 
           float scaler = 1 - (float) current_light_avg / 255.0;
-          r = 0 * scaler; //- ambient_light;
-          g = 0 * scaler; //- ambient_light;
-          b = 255 * scaler;
+          r = 155 * scaler; //- ambient_light;
+          g = 40 * scaler; //- ambient_light;
+          b = 10 * scaler;
 
           r = boundInt(r, 0, 255);
           g = boundInt(g, 0, 255);
@@ -935,16 +770,16 @@ void state_machine_extended_sad() {
 
           set_LED_color(r, g, b);
           LEDS_ON();
-          if ((current_light.light1 <= current_light.light2) && (current_light.light1 <= current_light.light3) && (current_light.light1 <= current_light.light4)) {
+          if ((current_light.light1 >= current_light.light2) && (current_light.light1 >= current_light.light3) && (current_light.light1 >= current_light.light4)) {
             max_direction = LIGHT0_PIN;
           }
-          else if ((current_light.light2 <= current_light.light1) && (current_light.light2 <= current_light.light3) && (current_light.light2 <= current_light.light4)) {
+          else if ((current_light.light2 >= current_light.light1) && (current_light.light2 >= current_light.light3) && (current_light.light2 >= current_light.light4)) {
             max_direction = LIGHT1_PIN;
           }
-          else if ((current_light.light3 <= current_light.light1) && (current_light.light3 <= current_light.light4) && (current_light.light3 <= current_light.light2)) {
+          else if ((current_light.light3 >= current_light.light1) && (current_light.light3 >= current_light.light4) && (current_light.light3 >= current_light.light2)) {
             max_direction = LIGHT2_PIN;
           }
-          else if ((current_light.light4 <= current_light.light1) && (current_light.light4 <= current_light.light3) && (current_light.light4 <= current_light.light2)) {
+          else if ((current_light.light4 >= current_light.light1) && (current_light.light4 >= current_light.light3) && (current_light.light4 >= current_light.light2)) {
             max_direction = LIGHT3_PIN;
           }
           printf("Max light came from LED %d\n", max_direction);
@@ -1041,3 +876,173 @@ void state_machine_extended_sad() {
 
   }
 }
+
+int main(void) {
+  ret_code_t error_code = NRF_SUCCESS;
+
+  // initialize RTT library
+  error_code = NRF_LOG_INIT(NULL);
+  APP_ERROR_CHECK(error_code);
+  NRF_LOG_DEFAULT_BACKENDS_INIT();
+  printf("Log initialized!\n");
+
+  // initialize LEDs
+  // nrf_gpio_pin_dir_set(23, NRF_GPIO_PIN_DIR_OUTPUT);
+  // nrf_gpio_pin_dir_set(24, NRF_GPIO_PIN_DIR_OUTPUT);
+  // nrf_gpio_pin_dir_set(25, NRF_GPIO_PIN_DIR_OUTPUT);
+
+  // initialize display
+  nrf_drv_spi_t spi_instance = NRF_DRV_SPI_INSTANCE(1);
+  nrf_drv_spi_config_t spi_config = {
+    .sck_pin = BUCKLER_LCD_SCLK,
+    .mosi_pin = BUCKLER_LCD_MOSI,
+    .miso_pin = BUCKLER_LCD_MISO,
+    .ss_pin = BUCKLER_LCD_CS,
+    .irq_priority = NRFX_SPI_DEFAULT_CONFIG_IRQ_PRIORITY,
+    .orc = 0,
+    .frequency = NRF_DRV_SPI_FREQ_4M,
+    .mode = NRF_DRV_SPI_MODE_2,
+    .bit_order = NRF_DRV_SPI_BIT_ORDER_MSB_FIRST
+  };
+
+  error_code = nrf_drv_spi_init(&spi_instance, &spi_config, NULL, NULL);
+  APP_ERROR_CHECK(error_code);
+
+
+  // initialize sensors
+  initialize_motor();
+  initialize_touch_sensors();
+  initialize_light_sensors();
+  initialize_motion_sensor();
+  set_LED_color(190, 0, 90);
+
+  initialize_LED();
+  printf("All sensors initialized!\n");
+  virtual_timer_init();
+
+  current_light = read_light_sensors();
+  previous_light = current_light;
+  srand(current_time);
+  today_mood = rand() % 2;
+  printf("Today's mood is: %d \n", today_mood);
+  //state_machine();
+
+  //uncomment for moods:
+  if (today_mood == 0) {
+    state_machine_extended();
+  }
+  else if (today_mood == 1) {
+    state_machine_extended_angry();
+    //led's red in ambient
+    //turns away from you for motion 
+  }
+  else if (today_mood == 2) {
+    state_machine_extended_sad();
+    //led's blue in ambient
+    //face in direction of least light, only vibrate for motion or touch
+  }
+
+
+  //uint32_t r = 0;
+  //uint32_t g = 0;
+  //uint32_t b = 0;
+
+  //bool redup = true;
+  //bool greenup = true;
+  //bool blueup = true;
+
+  // loop forever
+  // while (1) {
+    // printf("\n\n");
+    // current_light = read_light_sensors();
+    // kobukiSensorPoll(&sensors);
+    // previous_time = current_time;
+    // current_time = read_timer();
+
+    // //printf("current time is: %d \n", current_time);
+    // previous_light = current_light;
+    // previous_light_avg = (previous_light.light1 + previous_light.light2 + previous_light.light3 + previous_light.light4)/4;
+    // current_light_avg = (current_light.light1 + current_light.light2 + current_light.light3 + current_light.light4)/4;
+    // printf("Avg light is %d \n", current_light_avg);
+    // printf("lights: %d, %d, %d, %d \n", current_light.light1, current_light.light2, current_light.light3, current_light.light4);
+    // current_light_avg = boundInt(current_light_avg, 1, 255);
+
+    // float scaler = 1 - (float) current_light_avg / 255.0;
+    // r = 155 * scaler; //- ambient_light;
+    // g = 40 * scaler; //- ambient_light;
+    // b = 10 * scaler;
+
+    // r = boundInt(r, 0, 255);
+    // g = boundInt(g, 0, 255);
+    // b = boundInt(b, 0, 255);
+
+    // set_LED_color(r, g, b);
+    // LEDS_ON();
+
+    // printf("The set light is r = %d, g = %d, b = %d \n", r, g, b);
+    // motion_yn = read_motion_sensor();
+    // printf("is there motion %d \n", motion_yn);
+    // touch_struct = read_touch_sensors();
+    // touch_state = (!touch_struct.touch1 || !touch_struct.touch2); //(!touch_struct.touch0 || !touch_struct.touch1 || !touch_struct.touch2 || !touch_struct.touch4);
+    // // printf("is there touch %d \n", touch_state);
+    // printf("touch: %d, %d, %d, %d, %d\n", touch_struct.touch0, touch_struct.touch1, touch_struct.touch2, touch_struct.touch3, touch_struct.touch4);
+    // nrf_delay_ms(100);
+    
+    // kobukiDriveDirect(20,20);
+
+
+
+
+
+    // printf("************loop\n");
+    // light_values_t light_values = read_light_sensors();
+    // printf("Light Values: %d, %d, %d, %d\n", light_values.light1, light_values.light2, light_values.light3, light_values.light4);
+  
+    // printf("%d, %d %d \n", redup, (!greenup) && (g > 0), blueup);
+
+    // if (redup && r < 255) {
+    //   r = (r + 5);
+    // } else if (redup && r >= 255) {
+    //   redup = false;
+    // } else if ((!redup) && (r > 0)) {
+    //   r = r - 5;
+    // } else {
+    //   redup = true;
+    // }
+
+    // if (greenup && g < 255) {
+    //   g = (g + 10);
+    // } else if (greenup && g >= 255) {
+    //   greenup = false;
+    // } else if ((!greenup) && (g > 0)) {
+    //   g = (g - 10);
+    // } else {
+    //   greenup = true;
+    // }
+
+    // if (blueup && b < 255) {
+    //   b = (b + 15);
+    // } else if (blueup && b >= 255) {
+    //   blueup = false;
+    // } else if ((!blueup) && (b > 0)) {
+    //   b = b - 15;
+    // } else {
+    //   blueup = true;
+    // }
+
+    // printf("rgb %u %u %u \n",r, g, b);
+    // // g = (g + 10) % 255;
+    // // b = (b + 20) % 255;
+
+    // set_LED_color(r, g, b);
+    // LEDS_ON();
+
+  // }
+
+}
+
+
+
+
+
+
