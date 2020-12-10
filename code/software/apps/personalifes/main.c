@@ -191,6 +191,20 @@ int boundInt(int i, int low, int high) {
     return i;
 }
 
+uint8_t max_light_direction() {
+  uint8_t max_index = 0;
+  int16_t lights[4];
+  lights = current_light;
+
+  for (uint8_t i = 1; i < 4; i++) {
+    if (lights[i] > lights[max_index]) {
+      max_index = i;
+    }
+  }
+
+  return max_index;
+}
+
 void update_sensor_values() {
   // motor values
   kobukiSensorPoll(&sensors);
@@ -225,7 +239,27 @@ void update_sensor_values() {
 //************ STATE MACHINE ****************
 
 void state_machine() {
-  // config today's mood here:
+  // config today's mood:
+  led_t AMBIENT_LED;
+  uint8_t FACE_DIRECTION;
+
+  switch (today_mood) {
+    case NEUTRAL: {
+      AMBIENT_LED = NEUTRAL_LED;
+      FACE_DIRECTION = 0;
+      break;
+    }
+    case ANGRY: {
+      AMBIENT_LED = ANGRY_LED;
+      FACE_DIRECTION = 180;
+      break;
+    } 
+    case SAD:  {
+      AMBIENT_LED = SAD_LED;
+      FACE_DIRECTION = 0;
+      break;
+    }
+  }
 
   while (1) {
     printf("\n\n");
@@ -265,9 +299,9 @@ void state_machine() {
           printf("AMBIENT STATE\n");
 
           float scaler = 1 - (float) current_light_avg / 255.0;
-          r = NEUTRAL_r * scaler;
-          g = NEUTRAL_g * scaler;
-          b = NEUTRAL_b * scaler;
+          r = AMBIENT_LED.r * scaler;
+          g = AMBIENT_LED.g * scaler;
+          b = AMBIENT_LED.b * scaler;
 
           r = boundInt(r, 0, 255);
           g = boundInt(g, 0, 255);
@@ -276,39 +310,28 @@ void state_machine() {
           set_LED_color(r, g, b);
           LEDS_ON();
 
-          if ((current_light.light1 >= current_light.light2) && (current_light.light1 >= current_light.light3) && (current_light.light1 >= current_light.light4)) {
-            max_direction = LIGHT0_PIN;
+          switch(max_light_direction()) {
+            case 0: {
+              next_direction = 0;
+              break;
+            } case 1: {
+              next_direction = 90;
+              break;
+            } case 2: {
+              next_direction = 180;
+              break;
+            } case 3: {
+              next_direction = 270;
+              break;
+            }
           }
-          else if ((current_light.light2 >= current_light.light1) && (current_light.light2 >= current_light.light3) && (current_light.light2 >= current_light.light4)) {
-            max_direction = LIGHT1_PIN;
-          }
-          else if ((current_light.light3 >= current_light.light1) && (current_light.light3 >= current_light.light4) && (current_light.light3 >= current_light.light2)) {
-            max_direction = LIGHT2_PIN;
-          }
-          else if ((current_light.light4 >= current_light.light1) && (current_light.light4 >= current_light.light3) && (current_light.light4 >= current_light.light2)) {
-            max_direction = LIGHT3_PIN;
-          }
-          printf("Max light came from LED %d\n", max_direction);
-          if (max_direction == FRONT) {
-            next_direction = 0;
-          }
-          else if (max_direction == RIGHT) {
-            next_direction = 90;
-          }
-          else if (max_direction == BACK) {
-            next_direction = 180;
-          }
-          else if (max_direction == LEFT) {
-            next_direction = 270;
-          }
+
           printf("The direction of max light is: %d\n", next_direction);
           printf("Turning to face max light\n");
           face_motion(current_direction, next_direction);
           printf("Finished turning to face max light\n");
           current_direction = next_direction;
-
         }
-
         break;
       }
 
@@ -334,7 +357,7 @@ void state_machine() {
         //   state = TOUCH;
         // }
         printf("ATTENTION STATE\n");
-        next_direction = 0;
+        next_direction = FACE_DIRECTION;
         printf("turning towards motion, towards direction: %d\n", next_direction);
         face_motion(current_direction, next_direction);
         printf("done turning towards motion\n");
@@ -391,7 +414,6 @@ void state_machine() {
         break; // each case needs to end with break!
       }
     }
-
   }
 }
 
@@ -450,18 +472,3 @@ int main(void) {
   printf("Today's mood is: %d \n", today_mood);
 
   state_machine();
-
-//   if (today_mood == 0) {
-//     state_machine_extended();
-//   }
-//   else if (today_mood == 1) {
-//     state_machine_extended_angry();
-//     //led's red in ambient
-//     //turns away from you for motion 
-//   }
-//   else if (today_mood == 2) {
-//     state_machine_extended_sad();
-//     //led's blue in ambient
-//     //face in direction of least light, only vibrate for motion or touch
-//   }
-// }
