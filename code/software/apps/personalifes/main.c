@@ -44,6 +44,12 @@ typedef enum {
   SAD,
 } moods_t;
 
+typedef struct {
+  uint8_t r;
+  uint8_t g;
+  uint8_t b;
+} led_t;
+
 // Sensors
 light_values_t current_light, previous_light;
 touch_values_t touch_struct;
@@ -89,12 +95,6 @@ uint8_t touch_buffer[25] = {0};
 
 
 // LED baseline values
-
-typedef struct {
-  r,
-  g,
-  b,
-} led_t;
 
 led_t ANGRY_LED = {255, 0, 0}; 
 led_t SAD_LED = {0, 0, 255}; 
@@ -193,8 +193,8 @@ int boundInt(int i, int low, int high) {
 
 uint8_t max_light_direction() {
   uint8_t max_index = 0;
-  int16_t lights[4];
-  lights = current_light;
+  int16_t *lights;
+  lights = (int16_t*) &current_light;
 
   for (uint8_t i = 1; i < 4; i++) {
     if (lights[i] > lights[max_index]) {
@@ -240,8 +240,8 @@ void update_sensor_values() {
 
 void state_machine() {
   // config today's mood:
-  led_t AMBIENT_LED;
-  uint8_t FACE_DIRECTION;
+  led_t AMBIENT_LED = NEUTRAL_LED;
+  uint8_t FACE_DIRECTION = 0;
 
   switch (today_mood) {
     case NEUTRAL: {
@@ -267,7 +267,7 @@ void state_machine() {
     update_sensor_values();
 
     printf("encoders: %d, %d \n", sensors.leftWheelEncoder, sensors.rightWheelEncoder);
-    printf("light: curr:  %d, prev: %d, diff: %d, thresh: %d \n ", current_light_avg, previous_light_avg, abs(current_light_avg - previous_light_avg), scared_light_thresh);
+    printf("light: curr:  %ld, prev: %ld, diff: %d, thresh: %d \n ", current_light_avg, previous_light_avg, abs(current_light_avg - previous_light_avg), scared_light_thresh);
     // printf("touch buffer: %d, %d, %d, %d, %d \n", touch_buffer[0], touch_buffer[1], touch_buffer[2], touch_buffer[3], touch_buffer[4]);
     printf("touched? %d \n", touch_state);
     printf("Current direction is: %d, where 0 degrees is front and 180 is back\n", current_direction);
@@ -369,7 +369,7 @@ void state_machine() {
           timer_start = current_time;
           flashLEDs((current_time - timer_start));
         }
-        else  (timer_counter > timer_thresh) {
+        else { // (timer_counter > timer_thresh) {
            printf("ATTENTION --> AMBIENT \n");
            state = AMBIENT;
         }
@@ -472,3 +472,4 @@ int main(void) {
   printf("Today's mood is: %d \n", today_mood);
 
   state_machine();
+}
