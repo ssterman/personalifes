@@ -86,7 +86,7 @@ float turn_thresh_180 = 0.111125, turn_thresh_90 = 0.0555626, turn_thresh_270 = 
 uint8_t touch_threshold = 25;
 
 // Motor config
-int8_t motor_speed = 20;
+int8_t motor_speed = 30;
 
 // Touch config
 uint8_t touch_index = 0;
@@ -101,34 +101,8 @@ led_t SAD_LED = {0, 0, 255};
 led_t NEUTRAL_LED = {155, 40, 10}; 
 led_t TOUCH_LED = {148, 0, 211}; 
 
-// ANGRY_r = 255, ANGRY_g = 0, ANGRY_b = 0;
-// uint8_t SAD_r = 0, SAD_g = 0, SAD_b = 255;
-// uint8_t NEUTRAL_r = 155, NEUTRAL_g = 40, NEUTRAL_b = 10;
-// uint8_t TOUCH_r = 148, TOUCH_g = 0, TOUCH_b = 211;
-
 
 //************ HELPER FUNCTIONS ****************
-
-
-static float measure_distance(uint16_t current_encoder,
-                              uint16_t previous_encoder) {
-  const float CONVERSION = 0.0006108;
-  uint16_t ticks = current_encoder >= previous_encoder
-    ? current_encoder - previous_encoder
-    : current_encoder + (UINT16_MAX - previous_encoder);
-  return CONVERSION * ticks;
-}
-
-// static float measure_distance_reversed(uint16_t current_encoder,
-//                                        uint16_t previous_encoder) {
-//   // take the absolute value of ticks traveled before negating
-//   const float CONVERSION = 0.0006108;
-//   uint16_t ticks = current_encoder <= previous_encoder
-//     ? previous_encoder - current_encoder
-//     : previous_encoder + (UINT16_MAX - current_encoder);
-//   return -CONVERSION * ticks;
-// }
-
 
 uint8_t sumTouchBuffer() {
   uint8_t sum = 0;
@@ -138,35 +112,42 @@ uint8_t sumTouchBuffer() {
   return sum;
 }
 
+int32_t modulo(int32_t a, int32_t b) {
+  if (b < 0 ) return modulo(-a, -b);
+  int32_t result = a % b; 
+  return result >= 0 ? result : result + b;
+}
+
 void face_motion(uint16_t current_direction_var, uint16_t next_direction_var) {
   if (current_direction_var != next_direction_var) {
-    uint16_t amount_turn = abs(next_direction_var - current_direction_var);
-    if (amount_turn > 180) {
-      amount_turn = 90;
-    }
-    if (amount_turn == 90){
-      turn_thresh = turn_thresh_90;
-    }
-    else if (amount_turn == 180){
-      turn_thresh = turn_thresh_180;
-    }
-    last_encoder = sensors.rightWheelEncoder;
-    distance_traveled = 0.0;
-    while (distance_traveled < turn_thresh) {
+    int32_t diff = next_direction_var - current_direction_var;
+
+    // change to (-180, 180)
+    diff = modulo((diff + 180), 360) - 180;
+
+    // translate angle to ticks
+    // int32_t goal_ticks = 480 * diff / 360;
+    // int32_t encoder_delta = 0;
+    // int32_t goal_encoder_value = curr_encoder + goal_ticks;
+    // uint32_t start_encoder = sensors.rightWheelEncoder;
+
+    // printf("goalticks, diff, start_encoder %d, %d, %ld", goal_ticks, diff, start_encoder);
+
+    while (abs(diff) > 10) {
+      update_sensor_values();
       kobukiSensorPoll(&sensors);
-      curr_encoder = sensors.rightWheelEncoder;
-      float value = measure_distance(curr_encoder, last_encoder);
-      printf("value, %d, %f \n", curr_encoder, value);
-      distance_traveled += value;
-      last_encoder = curr_encoder;
-      if (((next_direction_var<current_direction_var) && (abs(next_direction_var-current_direction_var)<=180)) || (current_direction_var - next_direction_var > 180)) {
+      curr_encoder = sensors.rightWheelEncoder; 
+      int32_t cur_degrees = curr_encoder * 360 / 480; 
+      diff = next_direction_var - cur_degrees;
+      diff = modulo((diff + 180), 360) - 180;
+
+      if (diff < 0) {
         kobukiDriveDirect(0, -1 * motor_speed);
-        //turn left
-      }
-      else {
+      } else {
         kobukiDriveDirect(0, motor_speed);
-        //turn right
       }
+      // encoder_delta = abs(curr_encoder - start_encoder);
+      nrf_delay_ms(10);
     }
     kobukiDriveDirect(0, 0);
   }
@@ -177,10 +158,16 @@ void vibrate() {
   uint8_t vibrate_reps = 5;
 
   for (uint8_t i = 0; i < vibrate_reps; i++) {
-    kobukiDriveDirect(0, motor_speed);
-    nrf_delay_ms(ms_delay);
-    kobukiDriveDirect(0, -1 * motor_speed);
-    nrf_delay_ms(ms_delay);
+    for (uint8_t j = 0; j < ms_delay / 10; j++) {
+        kobukiSensorPoll(&sensors);
+        kobukiDriveDirect(0, motor_speed);
+        nrf_delay_ms(10);
+    }
+    for (uint8_t k = 0; k < ms_delay / 10; k++) {
+        kobukiSensorPoll(&sensors);
+        kobukiDriveDirect(0, -1 * motor_speed);
+        nrf_delay_ms(10);
+    }
   }
 }
 
@@ -202,7 +189,7 @@ uint8_t max_light_direction() {
     }
   }
 
-  return max_index;
+  return max_index + 1;
 }
 
 void update_sensor_values() {
@@ -311,16 +298,16 @@ void state_machine() {
           LEDS_ON();
 
           switch(max_light_direction()) {
-            case 0: {
+            case 1: {
               next_direction = 0;
               break;
-            } case 1: {
+            } case 2: {
               next_direction = 90;
               break;
-            } case 2: {
+            } case 3: {
               next_direction = 180;
               break;
-            } case 3: {
+            } case 4: {
               next_direction = 270;
               break;
             }
@@ -336,26 +323,6 @@ void state_machine() {
       }
 
       case ATTENTION: {
-        // timer_counter = current_time - timer_start;
-        // float value = measure_distance(curr_encoder, last_encoder);
-        // printf("value, %d, %f \n", curr_encoder, value);
-        // distance_traveled += value;
-        // last_encoder = curr_encoder;
-        //facing_motion = distance_traveled;
-        // if (abs(current_light_avg - previous_light_avg) >= scared_light_thresh) {
-        //   printf("ATTENTION --> SCARED \n");
-        //   state = SCARED;
-        //   timer_start = current_time;
-        //   flashLEDs((current_time - timer_start));
-        // }
-        // else if (timer_counter > timer_thresh) {
-        //   printf("ATTENTION --> AMBIENT \n");
-        //   state = AMBIENT;
-        // }
-        // if (distance_traveled > turn_thresh) {
-        //   printf("ATTENTION --> TOUCH \n");
-        //   state = TOUCH;
-        // }
         printf("ATTENTION STATE\n");
         next_direction = FACE_DIRECTION;
         printf("turning towards motion, towards direction: %d\n", next_direction);
@@ -391,9 +358,9 @@ void state_machine() {
         }
         else {
           printf("TOUCH STATE \n");
-          vibrate();
           set_LED_color(TOUCH_LED.r, TOUCH_LED.g, TOUCH_LED.b);
           LEDS_ON();
+          vibrate();
           kobukiDriveDirect(0, 0);
         }
         break; // each case needs to end with break!
@@ -471,5 +438,35 @@ int main(void) {
   today_mood = rand() % 2;
   printf("Today's mood is: %d \n", today_mood);
 
-  state_machine();
+  //state_machine();
+
+  while(true) {
+    nrf_delay_ms(10);
+    current_light = read_light_sensors();
+    // printf("lights: %ld, %ld, %ld, %ld \n", current_light.light1, current_light.light2, current_light.light3, current_light.light4);
+    kobukiSensorPoll(&sensors);
+    printf("encoders: %d  \n", sensors.rightWheelEncoder);
+    // kobukiDriveDirect(0, 30);
+    switch(max_light_direction()) {
+      case 1: {
+        next_direction = 0;
+        break;
+      } case 2: {
+        next_direction = 90;
+        break;
+      } case 3: {
+        next_direction = 180;
+        break;
+      } case 4: {
+        next_direction = 270;
+        break;
+      }
+    }
+    kobukiDriveDirect(0, 0);
+    printf("The direction of maxx light is: %d\n", next_direction);
+    // //printf("Turning to face max light\n");
+    face_motion(current_direction, next_direction);
+    // //printf("Finished turning to face max light\n");
+    current_direction = next_direction;
+  }
 }
