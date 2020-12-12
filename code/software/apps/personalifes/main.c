@@ -440,35 +440,35 @@ int main(void) {
   today_mood = rand() % 2;
   printf("Today's mood is: %d \n", today_mood);
 
-  //state_machine();
+  state_machine();
 
-  while(true) {
-    nrf_delay_ms(10);
-    current_light = read_light_sensors();
-    // printf("lights: %ld, %ld, %ld, %ld \n", current_light.light1, current_light.light2, current_light.light3, current_light.light4);
-    kobukiSensorPoll(&sensors);
-    printf("encoders: %d  \n", sensors.rightWheelEncoder);
-    // kobukiDriveDirect(0, 30);
-    switch(max_light_direction()) {
-      case 1: {
-        next_direction = 0;
-        break;
-      } case 2: {
-        next_direction = 90;
-        break;
-      } case 3: {
-        next_direction = 180;
-        break;
-      } case 4: {
-        next_direction = 270;
-        break;
-      }
-    }
-    kobukiDriveDirect(0, 0);
-    printf("The direction of maxx light is: %d\n", next_direction);
-    // //printf("Turning to face max light\n");
-    face_motion(current_direction, next_direction);
-    // //printf("Finished turning to face max light\n");
-    current_direction = next_direction;
-  }
+  // while(true) {
+  //   nrf_delay_ms(10);
+  //   current_light = read_light_sensors();
+  //   // printf("lights: %ld, %ld, %ld, %ld \n", current_light.light1, current_light.light2, current_light.light3, current_light.light4);
+  //   kobukiSensorPoll(&sensors);
+  //   printf("encoders: %d  \n", sensors.rightWheelEncoder);
+  //   // kobukiDriveDirect(0, 30);
+  //   switch(max_light_direction()) {
+  //     case 1: {
+  //       next_direction = 0;
+  //       break;
+  //     } case 2: {
+  //       next_direction = 90;
+  //       break;
+  //     } case 3: {
+  //       next_direction = 180;
+  //       break;
+  //     } case 4: {
+  //       next_direction = 270;
+  //       break;
+  //     }
+  //   }
+  //   kobukiDriveDirect(0, 0);
+  //   printf("The direction of maxx light is: %d\n", next_direction);
+  //   // //printf("Turning to face max light\n");
+  //   face_motion(current_direction, next_direction);
+  //   // //printf("Finished turning to face max light\n");
+  //   current_direction = next_direction;
+  // }
 }
