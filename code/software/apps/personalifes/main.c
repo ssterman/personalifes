@@ -118,6 +118,8 @@ int32_t modulo(int32_t a, int32_t b) {
   return result >= 0 ? result : result + b;
 }
 
+
+// NOTE: Does not handle encoder wrap at maxuint
 void face_motion(uint16_t current_direction_var, uint16_t next_direction_var) {
   if (current_direction_var != next_direction_var) {
     int32_t diff = next_direction_var - current_direction_var;
@@ -137,7 +139,7 @@ void face_motion(uint16_t current_direction_var, uint16_t next_direction_var) {
       update_sensor_values();
       kobukiSensorPoll(&sensors);
       curr_encoder = sensors.rightWheelEncoder; 
-      int32_t cur_degrees = curr_encoder * 360 / 480; 
+      int32_t cur_degrees = curr_encoder; 
       diff = next_direction_var - cur_degrees;
       diff = modulo((diff + 180), 360) - 180;
 
