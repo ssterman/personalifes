@@ -37,12 +37,6 @@
 #define LED_G_PIN  20
 #define LED_B_PIN  19
 
-//light sensors
-#define MAX_LIGHT 150
-#define MIN_LIGHT 10
-//#define SCALER (255/(MAX_LIGHT-MIN_LIGHT))
-#define SCALER 1.82
-
 //LIGHT SENSOR DIRECTIONS
 #define FRONT 1 // pin 2
 #define RIGHT 2 // pin 3

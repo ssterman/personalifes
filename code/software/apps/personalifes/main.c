@@ -82,7 +82,7 @@ flower_state_t state = AMBIENT;
 
 
 //************ THRESHOLDS and SETTINGS ****************
-uint16_t scared_light_thresh = (MAX_LIGHT - MIN_LIGHT)/2;
+uint16_t scared_light_thresh = 70;
 // calculate turn_thresh for 180 degrees
 uint32_t timer_thresh = 1500000, timer_scared_thresh = 15000000;
 float turn_thresh = 0.111125;
@@ -91,9 +91,10 @@ uint8_t touch_threshold = 25;
 
 // Motor config
 int8_t motor_speed = 30;
-float K_p = 20;
-float K_d = 10;
-float degrees_per_cycle = .5;
+float K_p = 15;
+float K_d = 1;
+float degrees_per_cycle = 1.5;
+float MOTOR_MAX = 40;
 
 // Touch config
 uint8_t touch_index = 0;
@@ -117,33 +118,50 @@ uint8_t sumTouchBuffer() {
   return sum;
 }
 
-int32_t modulo(int32_t a, int32_t b) {
-  if (b < 0 ) return modulo(-a, -b);
-  int32_t result = a % b; 
-  return result >= 0 ? result : result + b;
+// https://stackoverflow.com/questions/12089514/real-modulo-operator-in-c-c
+int32_t modulo(int32_t aval, int32_t bval) {
+  if (bval < 0 ) return modulo(-aval, -bval);
+  int32_t result = aval % bval; 
+  return result >= 0 ? result : result + bval;
 }
 
+int8_t motor_command = 0;
 
 void update_position() {    
+    float sign = goal_heading_in_degrees - setpoint > 0 ? 1 : -1;
     // if the setpoint isn't within error of the goal, keep going
     if (abs(setpoint - goal_heading_in_degrees) > degrees_per_cycle) {
-      int8_t sign = goal_heading_in_degrees - setpoint > 0 ? 1 : -1;
       // linear increase in setpoint
       setpoint += 1 * sign * degrees_per_cycle; 
     }
 
     // (-180, 180) difference_between_position_and_setpoint
     float diff = modulo((setpoint - curr_encoder + 180), 360) - 180;    
-    int8_t updated_motor_speed = K_p * diff + K_d * (curr_encoder - last_encoder);
+    float updated_motor_speed = (K_p * diff) - (K_d * (float) (curr_encoder - last_encoder));
 
-    updated_motor_speed = updated_motor_speed > 75 ? 75 : updated_motor_speed;
-    updated_motor_speed = updated_motor_speed < -75 ? -75 : updated_motor_speed;
+    updated_motor_speed = updated_motor_speed > MOTOR_MAX ? MOTOR_MAX : updated_motor_speed;
+    updated_motor_speed = updated_motor_speed < -1 * MOTOR_MAX ? -1 * MOTOR_MAX : updated_motor_speed;
 
-    if (abs(setpoint - goal_heading_in_degrees) < degrees_per_cycle && diff < 10) {
-      kobukiDriveDirect(0, updated_motor_speed);
+    //motor_command +=  motor_command < updated_motor_speed ? 2 : -2; //(int8_t) updated_motor_speed;
+    //motor_command = (float) motor_command * .7 + updated_motor_speed * .3;
+
+    if (sign > 0) {
+      updated_motor_speed = updated_motor_speed < 15 ? 15 : updated_motor_speed;
+    } else {
+      updated_motor_speed = updated_motor_speed > -15 ? -15 : updated_motor_speed;
+    }
+
+    motor_command = updated_motor_speed;
+
+
+    printf("setpoint %f, goal %d, diff %f, speed %d \n", setpoint, goal_heading_in_degrees, diff, motor_command);
+
+    if (abs(setpoint - goal_heading_in_degrees) > degrees_per_cycle || abs(diff) > 10) {
+      kobukiDriveDirect(0, motor_command);
       reached_goal = false;
     } else {
       kobukiDriveDirect(0,0);
+      printf("GOAL!!!");
       reached_goal = true;
     }
 }
@@ -342,7 +360,6 @@ void state_machine() {
       }
 
       case ATTENTION: {   
-
         // do this first     
         printf("ATTENTION STATE\n");
         goal_heading_in_degrees = FACE_DIRECTION;
@@ -445,22 +462,60 @@ void initialize_all() {
 int main(void) {
 
   // initialize hardware
-  // initialize_all();
-  initialize_light_sensors();
+  initialize_all();
+  //initialize_light_sensors();
 
   // set initial values
   current_light = read_light_sensors();
   previous_light = current_light;
 
-  // srand(current_time);
-  // today_mood = rand() % 2;
+  srand(current_light.light1);
+  today_mood = 0; //rand() % 2;
   // printf("Today's mood is: %d \n", today_mood);
 
-  // state_machine();
 
   while (true) {
-    nrf_delay_ms(10);
-    current_light = read_light_sensors();
-    printf("%d, %d, %d, %d \n", current_light.light1, current_light.light2, current_light.light3, current_light.light4);
-  }
+        printf("\n\n");
+        nrf_delay_ms(5);
+        update_sensor_values();
+
+          // float scaler = 1 - (float) current_light_avg / 255.0;
+          // r = AMBIENT_LED.r * scaler;
+          // g = AMBIENT_LED.g * scaler;
+          // b = AMBIENT_LED.b * scaler;
+
+          // r = boundInt(r, 0, 255);
+          // g = boundInt(g, 0, 255);
+          // b = boundInt(b, 0, 255);
+
+          // set_LED_color(r, g, b);
+          // LEDS_ON();
+
+          switch(max_light_direction()) {
+            case 1: {
+              goal_heading_in_degrees = 0;
+              break;
+            } case 2: {
+              goal_heading_in_degrees = 90;
+              break;
+            } case 3: {
+              goal_heading_in_degrees = 180;
+              break;
+            } case 4: {
+              goal_heading_in_degrees = 270;
+              break;
+            }
+          }
+
+          update_position();
+      }
+  //state_machine();
+
+
+  //LIGHT SENSOR FORMATTING 
+  // while (true) {
+  //   nrf_delay_ms(10);
+  //   current_light = read_light_sensors();
+  //   printf("%d, %d, %d, %d \n", current_light.light1, current_light.light2, current_light.light3, current_light.light4);
+  // }
 }
