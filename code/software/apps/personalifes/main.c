@@ -52,30 +52,24 @@ typedef struct {
 
 // Sensors
 light_values_t current_light, previous_light;
-int16_t last_max_light_value = 0;
 int16_t last_max_light_index = 1;
 int16_t light_change_threshold = 15;
-
-touch_values_t touch_struct;
-
 uint32_t current_light_avg, previous_light_avg, change_in_light;
-bool motion_yn, facing_motion, touch_state;
+bool motion_yn, touch_state;
+touch_values_t touch_struct;
 
 // LEDs
 uint8_t r, b, g;
 
 // Timing
-uint32_t current_time, previous_time, timer_start, timer_counter;
+uint32_t current_time, timer_start, timer_counter;
 
 // Mood
 moods_t today_mood;
 
 // Motor
-uint16_t current_direction = 0, next_direction = 0, previous_direction = 0;
-uint8_t max_direction;
 uint16_t last_encoder = 0, curr_encoder = 0;
-float distance_traveled = 0.0;
-
+int8_t motor_command = 0;
 int32_t goal_heading_in_degrees = 0;
 float setpoint = 0;
 bool reached_goal = false;
@@ -87,12 +81,9 @@ flower_state_t state = AMBIENT;
 
 //************ THRESHOLDS and SETTINGS ****************
 uint16_t scared_light_thresh = 70;
-uint16_t attention_time_thresh = 3000000;
-// calculate turn_thresh for 180 degrees
-uint32_t timer_thresh = 1500000, timer_scared_thresh = 15000000;
-float turn_thresh = 0.111125;
-float turn_thresh_180 = 0.111125, turn_thresh_90 = 0.0555626, turn_thresh_270 = 0.1666875;
-uint8_t touch_threshold = 25;
+uint32_t timer_scared_thresh = 3000000;
+uint32_t attention_time_thresh = 3000000;
+uint32_t timer_thresh = 1500000;
 
 // Motor config
 int8_t motor_speed = 30;
@@ -102,6 +93,7 @@ float degrees_per_cycle = 1.5;
 float MOTOR_MAX = 40;
 
 // Touch config
+uint8_t touch_threshold = 25;
 uint8_t touch_index = 0;
 uint8_t touch_length = 25;
 uint8_t touch_buffer[25] = {0};
@@ -130,11 +122,6 @@ int32_t modulo(int32_t aval, int32_t bval) {
   return result >= 0 ? result : result + bval;
 }
 
-
-
-
-int8_t motor_command = 0;
-
 void update_position() {    
     float setpoint_to_heading = modulo(goal_heading_in_degrees - setpoint + 180, 360) - 180;
     float sign = setpoint_to_heading > 0 ? 1 : -1;
@@ -151,9 +138,6 @@ void update_position() {
     updated_motor_speed = updated_motor_speed > MOTOR_MAX ? MOTOR_MAX : updated_motor_speed;
     updated_motor_speed = updated_motor_speed < -1 * MOTOR_MAX ? -1 * MOTOR_MAX : updated_motor_speed;
 
-    //motor_command +=  motor_command < updated_motor_speed ? 2 : -2; //(int8_t) updated_motor_speed;
-    //motor_command = (float) motor_command * .7 + updated_motor_speed * .3;
-
     if (modulo(goal_heading_in_degrees - curr_encoder + 180, 360) - 180 > 0) {
       updated_motor_speed = updated_motor_speed < 20 ? 20 : updated_motor_speed;
     } else {
@@ -161,7 +145,6 @@ void update_position() {
     }
 
     motor_command = updated_motor_speed;
-
 
     printf("setpoint %f, setpoint_to_heading %f, goal %d, diff %f, speed %d \n", setpoint, setpoint_to_heading, goal_heading_in_degrees, diff, motor_command);
 
@@ -174,7 +157,6 @@ void update_position() {
       reached_goal = true;
     }
 }
-
 
 void vibrate() {
   uint8_t ms_delay = 100;
@@ -215,7 +197,6 @@ uint8_t max_light_direction() {
   if (abs(lights[last_max_light_index] - lights[max_index]) < light_change_threshold) {
     max_index = last_max_light_index;
   } else {
-    // last_max_light_value = lights[max_index];
     last_max_light_index = max_index;
   }
 
@@ -229,7 +210,6 @@ void update_sensor_values() {
   curr_encoder = sensors.rightWheelEncoder + 18000; //put the encoders in the middle of the space
 
   // timing
-  previous_time = current_time;
   current_time = read_timer();
 
   // light
@@ -286,7 +266,6 @@ void state_machine() {
 
     printf("encoders: %d, %d \n", sensors.leftWheelEncoder, sensors.rightWheelEncoder);
     printf("light: curr:  %ld, prev: %ld, diff: %d, thresh: %d \n ", current_light_avg, previous_light_avg, abs(current_light_avg - previous_light_avg), scared_light_thresh);
-    // printf("touch buffer: %d, %d, %d, %d, %d \n", touch_buffer[0], touch_buffer[1], touch_buffer[2], touch_buffer[3], touch_buffer[4]);
     printf("touched? %d \n", touch_state);
 
     switch(state) {
@@ -300,10 +279,7 @@ void state_machine() {
         else if (motion_yn && (goal_heading_in_degrees != FACE_DIRECTION || ( goal_heading_in_degrees == FACE_DIRECTION && !reached_goal))) {
           printf("AMBIENT --> MOTION \n");
           state = ATTENTION;
-          // last_encoder = sensors.rightWheelEncoder;
-          // distance_traveled = 0.0;
           timer_start = current_time;
-          // kobukiDriveDirect(0, motor_speed);
         }
         else if (change_in_light >= scared_light_thresh) {
           printf("AMBIENT --> SCARED \n");
@@ -361,11 +337,11 @@ void state_machine() {
           state = SCARED;
           timer_start = current_time;
           flashLEDs((current_time - timer_start));
-        } else if (reached_goal && timer_counter > attention_time_thresh ) { // (timer_counter > timer_thresh) {
+        } else if (reached_goal && timer_counter > attention_time_thresh ) { 
            printf("ATTENTION --> AMBIENT \n");
            state = AMBIENT;
         }
-        break; // each case needs to end with break!
+        break;
       }
 
       case TOUCH: {
@@ -388,7 +364,7 @@ void state_machine() {
           kobukiDriveDirect(0, 0);
           setpoint = modulo(curr_encoder, 360);
         }
-        break; // each case needs to end with break!
+        break; 
       }
 
       case SCARED: {
@@ -403,7 +379,7 @@ void state_machine() {
           flashLEDs((current_time - timer_start));
           kobukiDriveDirect(0, 0);
         }
-        break; // each case needs to end with break!
+        break; 
       }
     }
   }
@@ -454,59 +430,28 @@ int main(void) {
 
   // initialize hardware
   initialize_all();
-  //initialize_light_sensors();
 
   // set initial values
   current_light = read_light_sensors();
   previous_light = current_light;
 
   srand(current_light.light1);
-  today_mood = 0; //rand() % 2;
-  // printf("Today's mood is: %d \n", today_mood);
+  today_mood = rand() % 2;
 
-
-  // while (true) {
-  //       printf("\n\n");
-  //       nrf_delay_ms(5);
-  //       update_sensor_values();
-
-  //         // float scaler = 1 - (float) current_light_avg / 255.0;
-  //         // r = AMBIENT_LED.r * scaler;
-  //         // g = AMBIENT_LED.g * scaler;
-  //         // b = AMBIENT_LED.b * scaler;
-
-  //         // r = boundInt(r, 0, 255);
-  //         // g = boundInt(g, 0, 255);
-  //         // b = boundInt(b, 0, 255);
-
-  //         // set_LED_color(r, g, b);
-  //         // LEDS_ON();
-
-  //         switch(max_light_direction()) {
-  //           case 1: {
-  //             goal_heading_in_degrees = 0;
-  //             break;
-  //           } case 2: {
-  //             goal_heading_in_degrees = 90;
-  //             break;
-  //           } case 3: {
-  //             goal_heading_in_degrees = 180;
-  //             break;
-  //           } case 4: {
-  //             goal_heading_in_degrees = 270;
-  //             break;
-  //           }
-  //         }
-
-  //         update_position();
-  //     }
   state_machine();
 
-
-  //LIGHT SENSOR FORMATTING 
+  //LIGHT SENSOR FORMATTING for csv output
   // while (true) {
   //   nrf_delay_ms(10);
   //   current_light = read_light_sensors();
   //   printf("%d, %d, %d, %d \n", current_light.light1, current_light.light2, current_light.light3, current_light.light4);
   // }
+
+  // led_t AMBIENT_LED = NEUTRAL_LED;
+  // while (true) {
+  //   set_LED_color(AMBIENT_LED.r, AMBIENT_LED.g, AMBIENT_LED.b);
+  //   LEDS_ON();
+  //   nrf_delay_ms(1000);
+  // };
+
 }

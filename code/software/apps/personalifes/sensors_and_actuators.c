@@ -213,7 +213,7 @@ void LEDS_OFF() {
 void flashLEDs(uint32_t time_diff){
 	//write flash LEDs order
 	if (((time_diff / 500000)) % 2 == 1) {
-		set_LED_color(255, 99, 77);
+		set_LED_color(255, 0, 0);
 		LEDS_ON();
 	}
 	else {
