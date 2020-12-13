@@ -100,7 +100,6 @@ uint8_t touch_index = 0;
 uint8_t touch_length = 25;
 uint8_t touch_buffer[25] = {0};
 
-
 // LED baseline values
 led_t ANGRY_LED = {255, 0, 0}; 
 led_t SAD_LED = {0, 0, 255}; 
@@ -446,15 +445,22 @@ void initialize_all() {
 int main(void) {
 
   // initialize hardware
-  initialize_all();
+  // initialize_all();
+  initialize_light_sensors();
 
   // set initial values
   current_light = read_light_sensors();
   previous_light = current_light;
 
-  srand(current_time);
-  today_mood = rand() % 2;
-  printf("Today's mood is: %d \n", today_mood);
+  // srand(current_time);
+  // today_mood = rand() % 2;
+  // printf("Today's mood is: %d \n", today_mood);
 
-  state_machine();
+  // state_machine();
+
+  while (true) {
+    nrf_delay_ms(10);
+    current_light = read_light_sensors();
+    printf("%d, %d, %d, %d \n", current_light.light1, current_light.light2, current_light.light3, current_light.light4);
+  }
 }
