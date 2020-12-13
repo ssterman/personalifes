@@ -87,6 +87,7 @@ flower_state_t state = AMBIENT;
 
 //************ THRESHOLDS and SETTINGS ****************
 uint16_t scared_light_thresh = 70;
+uint16_t attention_time_thresh = 3000000;
 // calculate turn_thresh for 180 degrees
 uint32_t timer_thresh = 1500000, timer_scared_thresh = 15000000;
 float turn_thresh = 0.111125;
@@ -164,7 +165,7 @@ void update_position() {
 
     printf("setpoint %f, setpoint_to_heading %f, goal %d, diff %f, speed %d \n", setpoint, setpoint_to_heading, goal_heading_in_degrees, diff, motor_command);
 
-    if (abs(setpoint_to_heading) > degrees_per_cycle || abs(diff) > 10) {
+    if (abs(setpoint_to_heading) > 10 || abs(diff) > 10) {
       kobukiDriveDirect(0, motor_command);
       reached_goal = false;
     } else {
@@ -174,33 +175,6 @@ void update_position() {
     }
 }
 
-
-
-// void face_motion(uint16_t current_direction_var, uint16_t next_direction_var) {
-//   if (current_direction_var != next_direction_var) {
-//     int32_t diff = next_direction_var - current_direction_var;
-
-//     // change to (-180, 180)
-//     diff = modulo((diff + 180), 360) - 180;
-
-//     while (abs(diff) > 10) {
-//       update_sensor_values();
-//       kobukiSensorPoll(&sensors);
-//       curr_encoder = sensors.rightWheelEncoder; 
-//       int32_t cur_degrees = curr_encoder; 
-//       diff = next_direction_var - cur_degrees;
-//       diff = modulo((diff + 180), 360) - 180;
-
-//       if (diff < 0) {
-//         kobukiDriveDirect(0, -1 * motor_speed);
-//       } else {
-//         kobukiDriveDirect(0, motor_speed);
-//       }
-//       nrf_delay_ms(10);
-//     }
-//     kobukiDriveDirect(0, 0);
-//   }
-// }
 
 void vibrate() {
   uint8_t ms_delay = 100;
@@ -379,13 +353,15 @@ void state_machine() {
         printf("ATTENTION STATE\n");
         goal_heading_in_degrees = FACE_DIRECTION;
         update_position();
+        timer_counter = current_time - timer_start;
+        printf("timer_counter %ld, thresh, %ld\n", timer_counter, attention_time_thresh);
 
         if (abs(current_light_avg - previous_light_avg) >= scared_light_thresh) {
           printf("ATTENTION --> SCARED \n");
           state = SCARED;
           timer_start = current_time;
           flashLEDs((current_time - timer_start));
-        } else if (reached_goal) { // (timer_counter > timer_thresh) {
+        } else if (reached_goal && timer_counter > attention_time_thresh ) { // (timer_counter > timer_thresh) {
            printf("ATTENTION --> AMBIENT \n");
            state = AMBIENT;
         }
