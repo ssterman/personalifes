@@ -72,6 +72,10 @@ uint8_t max_direction;
 uint16_t last_encoder = 0, curr_encoder = 0;
 float distance_traveled = 0.0;
 
+int32_t goal_heading_in_degrees = 0;
+float setpoint = 0;
+bool reached_goal = false;
+
 // initial state
 KobukiSensors_t sensors = {0};
 flower_state_t state = AMBIENT;
@@ -87,6 +91,9 @@ uint8_t touch_threshold = 25;
 
 // Motor config
 int8_t motor_speed = 30;
+float K_p = 20;
+float K_d = 10;
+float degrees_per_cycle = .5;
 
 // Touch config
 uint8_t touch_index = 0;
@@ -95,7 +102,6 @@ uint8_t touch_buffer[25] = {0};
 
 
 // LED baseline values
-
 led_t ANGRY_LED = {255, 0, 0}; 
 led_t SAD_LED = {0, 0, 255}; 
 led_t NEUTRAL_LED = {155, 40, 10}; 
@@ -119,41 +125,57 @@ int32_t modulo(int32_t a, int32_t b) {
 }
 
 
-// NOTE: Does not handle encoder wrap at maxuint
-void face_motion(uint16_t current_direction_var, uint16_t next_direction_var) {
-  if (current_direction_var != next_direction_var) {
-    int32_t diff = next_direction_var - current_direction_var;
-
-    // change to (-180, 180)
-    diff = modulo((diff + 180), 360) - 180;
-
-    // translate angle to ticks
-    // int32_t goal_ticks = 480 * diff / 360;
-    // int32_t encoder_delta = 0;
-    // int32_t goal_encoder_value = curr_encoder + goal_ticks;
-    // uint32_t start_encoder = sensors.rightWheelEncoder;
-
-    // printf("goalticks, diff, start_encoder %d, %d, %ld", goal_ticks, diff, start_encoder);
-
-    while (abs(diff) > 10) {
-      update_sensor_values();
-      kobukiSensorPoll(&sensors);
-      curr_encoder = sensors.rightWheelEncoder; 
-      int32_t cur_degrees = curr_encoder; 
-      diff = next_direction_var - cur_degrees;
-      diff = modulo((diff + 180), 360) - 180;
-
-      if (diff < 0) {
-        kobukiDriveDirect(0, -1 * motor_speed);
-      } else {
-        kobukiDriveDirect(0, motor_speed);
-      }
-      // encoder_delta = abs(curr_encoder - start_encoder);
-      nrf_delay_ms(10);
+void update_position() {    
+    // if the setpoint isn't within error of the goal, keep going
+    if (abs(setpoint - goal_heading_in_degrees) > degrees_per_cycle) {
+      int8_t sign = goal_heading_in_degrees - setpoint > 0 ? 1 : -1;
+      // linear increase in setpoint
+      setpoint += 1 * sign * degrees_per_cycle; 
     }
-    kobukiDriveDirect(0, 0);
-  }
+
+    // (-180, 180) difference_between_position_and_setpoint
+    float diff = modulo((setpoint - curr_encoder + 180), 360) - 180;    
+    int8_t updated_motor_speed = K_p * diff + K_d * (curr_encoder - last_encoder);
+
+    updated_motor_speed = updated_motor_speed > 75 ? 75 : updated_motor_speed;
+    updated_motor_speed = updated_motor_speed < -75 ? -75 : updated_motor_speed;
+
+    if (abs(setpoint - goal_heading_in_degrees) < degrees_per_cycle && diff < 10) {
+      kobukiDriveDirect(0, updated_motor_speed);
+      reached_goal = false;
+    } else {
+      kobukiDriveDirect(0,0);
+      reached_goal = true;
+    }
 }
+
+
+
+// void face_motion(uint16_t current_direction_var, uint16_t next_direction_var) {
+//   if (current_direction_var != next_direction_var) {
+//     int32_t diff = next_direction_var - current_direction_var;
+
+//     // change to (-180, 180)
+//     diff = modulo((diff + 180), 360) - 180;
+
+//     while (abs(diff) > 10) {
+//       update_sensor_values();
+//       kobukiSensorPoll(&sensors);
+//       curr_encoder = sensors.rightWheelEncoder; 
+//       int32_t cur_degrees = curr_encoder; 
+//       diff = next_direction_var - cur_degrees;
+//       diff = modulo((diff + 180), 360) - 180;
+
+//       if (diff < 0) {
+//         kobukiDriveDirect(0, -1 * motor_speed);
+//       } else {
+//         kobukiDriveDirect(0, motor_speed);
+//       }
+//       nrf_delay_ms(10);
+//     }
+//     kobukiDriveDirect(0, 0);
+//   }
+// }
 
 void vibrate() {
   uint8_t ms_delay = 100;
@@ -197,6 +219,7 @@ uint8_t max_light_direction() {
 void update_sensor_values() {
   // motor values
   kobukiSensorPoll(&sensors);
+  last_encoder = curr_encoder;
   curr_encoder = sensors.rightWheelEncoder;
 
   // timing
@@ -259,7 +282,6 @@ void state_machine() {
     printf("light: curr:  %ld, prev: %ld, diff: %d, thresh: %d \n ", current_light_avg, previous_light_avg, abs(current_light_avg - previous_light_avg), scared_light_thresh);
     // printf("touch buffer: %d, %d, %d, %d, %d \n", touch_buffer[0], touch_buffer[1], touch_buffer[2], touch_buffer[3], touch_buffer[4]);
     printf("touched? %d \n", touch_state);
-    printf("Current direction is: %d, where 0 degrees is front and 180 is back\n", current_direction);
 
     switch(state) {
       case AMBIENT: {
@@ -301,48 +323,41 @@ void state_machine() {
 
           switch(max_light_direction()) {
             case 1: {
-              next_direction = 0;
+              goal_heading_in_degrees = 0;
               break;
             } case 2: {
-              next_direction = 90;
+              goal_heading_in_degrees = 90;
               break;
             } case 3: {
-              next_direction = 180;
+              goal_heading_in_degrees = 180;
               break;
             } case 4: {
-              next_direction = 270;
+              goal_heading_in_degrees = 270;
               break;
             }
           }
 
-          printf("The direction of max light is: %d\n", next_direction);
-          printf("Turning to face max light\n");
-          face_motion(current_direction, next_direction);
-          printf("Finished turning to face max light\n");
-          current_direction = next_direction;
+          update_position();
         }
         break;
       }
 
-      case ATTENTION: {
+      case ATTENTION: {   
+
+        // do this first     
         printf("ATTENTION STATE\n");
-        next_direction = FACE_DIRECTION;
-        printf("turning towards motion, towards direction: %d\n", next_direction);
-        face_motion(current_direction, next_direction);
-        printf("done turning towards motion\n");
-        current_direction = next_direction;
+        goal_heading_in_degrees = FACE_DIRECTION;
+        update_position();
 
         if (abs(current_light_avg - previous_light_avg) >= scared_light_thresh) {
           printf("ATTENTION --> SCARED \n");
           state = SCARED;
           timer_start = current_time;
           flashLEDs((current_time - timer_start));
-        }
-        else { // (timer_counter > timer_thresh) {
+        } else if (reached_goal) { // (timer_counter > timer_thresh) {
            printf("ATTENTION --> AMBIENT \n");
            state = AMBIENT;
         }
-
         break; // each case needs to end with break!
       }
 
@@ -364,6 +379,7 @@ void state_machine() {
           LEDS_ON();
           vibrate();
           kobukiDriveDirect(0, 0);
+          setpoint = curr_encoder;
         }
         break; // each case needs to end with break!
       }
@@ -441,34 +457,4 @@ int main(void) {
   printf("Today's mood is: %d \n", today_mood);
 
   state_machine();
-
-  // while(true) {
-  //   nrf_delay_ms(10);
-  //   current_light = read_light_sensors();
-  //   // printf("lights: %ld, %ld, %ld, %ld \n", current_light.light1, current_light.light2, current_light.light3, current_light.light4);
-  //   kobukiSensorPoll(&sensors);
-  //   printf("encoders: %d  \n", sensors.rightWheelEncoder);
-  //   // kobukiDriveDirect(0, 30);
-  //   switch(max_light_direction()) {
-  //     case 1: {
-  //       next_direction = 0;
-  //       break;
-  //     } case 2: {
-  //       next_direction = 90;
-  //       break;
-  //     } case 3: {
-  //       next_direction = 180;
-  //       break;
-  //     } case 4: {
-  //       next_direction = 270;
-  //       break;
-  //     }
-  //   }
-  //   kobukiDriveDirect(0, 0);
-  //   printf("The direction of maxx light is: %d\n", next_direction);
-  //   // //printf("Turning to face max light\n");
-  //   face_motion(current_direction, next_direction);
-  //   // //printf("Finished turning to face max light\n");
-  //   current_direction = next_direction;
-  // }
 }
