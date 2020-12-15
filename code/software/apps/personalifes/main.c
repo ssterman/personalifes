@@ -276,7 +276,7 @@ void state_machine() {
           state = TOUCH;
           timer_start = current_time;
         }
-        else if (motion_yn && (goal_heading_in_degrees != FACE_DIRECTION || ( goal_heading_in_degrees == FACE_DIRECTION && !reached_goal))) {
+        else if (today_mood != SAD && motion_yn && (goal_heading_in_degrees != FACE_DIRECTION || ( goal_heading_in_degrees == FACE_DIRECTION && !reached_goal))) {
           printf("AMBIENT --> MOTION \n");
           state = ATTENTION;
           timer_start = current_time;
@@ -436,7 +436,7 @@ int main(void) {
   previous_light = current_light;
 
   srand(current_light.light1);
-  today_mood = rand() % 2;
+  today_mood =  rand() % 3;
 
   state_machine();
 
